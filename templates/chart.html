@@ -9,73 +9,153 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #f5f7fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            background: #f0f2f5;
             color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
+
+        /* ── 顶栏 ── */
         .header {
-            background: linear-gradient(135deg, #00a1d6, #0078d4);
+            background: linear-gradient(135deg, #00a1d6 0%, #0078d4 50%, #6a5acd 100%);
             color: white;
-            padding: 1.5rem 2rem;
+            padding: 1.2rem 2rem;
             display: flex;
             align-items: center;
             gap: 1rem;
+            position: relative;
+            overflow: hidden;
         }
-        .header a {
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+        }
+        .back-btn {
             color: white;
             text-decoration: none;
-            font-size: 1.2rem;
-            padding: 0.3rem 0.6rem;
-            border-radius: 6px;
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
             background: rgba(255,255,255,0.15);
+            transition: background 0.2s;
+            position: relative;
+            backdrop-filter: blur(4px);
         }
-        .header a:hover { background: rgba(255,255,255,0.25); }
-        .header .title-area { flex: 1; }
-        .header h1 { font-size: 1.3rem; margin-bottom: 0.2rem; }
-        .header p { font-size: 0.85rem; opacity: 0.9; }
+        .back-btn:hover { background: rgba(255,255,255,0.25); }
+        .header .title-area { flex: 1; position: relative; }
+        .header h1 { font-size: 1.2rem; margin-bottom: 0.15rem; font-weight: 600; }
+        .header h1 a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .header h1 a:hover { opacity: 0.85; }
+        .header h1 a .link-icon {
+            font-size: 0.7em;
+            opacity: 0.6;
+            margin-left: 4px;
+        }
+        .header p { font-size: 0.82rem; opacity: 0.8; font-weight: 300; }
 
-        .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem; }
+        /* ── 主体 ── */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            flex: 1;
+            width: 100%;
+        }
 
-        /* 当前数据卡片 */
+        /* ── 数据卡片 ── */
         .current-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 1rem;
+            gap: 0.8rem;
             margin-bottom: 1.5rem;
         }
         .stat-card {
             background: white;
-            border-radius: 10px;
-            padding: 1rem;
+            border-radius: 12px;
+            padding: 1rem 0.8rem;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.04);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .stat-card .label { font-size: 0.8rem; color: #888; margin-bottom: 0.3rem; }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+        .stat-card:nth-child(1)::before { background: linear-gradient(90deg, #00a1d6, #00c9ff); }
+        .stat-card:nth-child(2)::before { background: linear-gradient(90deg, #ff6b81, #ff8fa3); }
+        .stat-card:nth-child(3)::before { background: linear-gradient(90deg, #ffa502, #ffc048); }
+        .stat-card:nth-child(4)::before { background: linear-gradient(90deg, #2ed573, #7bed9f); }
+        .stat-card:nth-child(5)::before { background: linear-gradient(90deg, #a55eea, #c990f0); }
+        .stat-card:nth-child(6)::before { background: linear-gradient(90deg, #45aaf2, #74c0fc); }
+
+        .stat-card .icon {
+            font-size: 1.3rem;
+            margin-bottom: 0.3rem;
+            display: block;
+        }
+        .stat-card .label {
+            font-size: 0.75rem;
+            color: #999;
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
         .stat-card .value {
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             font-weight: 700;
-            color: #00a1d6;
+            color: #1a1a2e;
             position: relative;
             cursor: default;
         }
+        .stat-card:nth-child(1) .value { color: #00a1d6; }
+        .stat-card:nth-child(2) .value { color: #ff6b81; }
+        .stat-card:nth-child(3) .value { color: #ffa502; }
+        .stat-card:nth-child(4) .value { color: #2ed573; }
+        .stat-card:nth-child(5) .value { color: #a55eea; }
+        .stat-card:nth-child(6) .value { color: #45aaf2; }
+
         /* 悬浮提示框 */
         .stat-card .value .tooltip {
             visibility: hidden;
             opacity: 0;
             position: absolute;
-            bottom: calc(100% + 8px);
+            bottom: calc(100% + 10px);
             left: 50%;
             transform: translateX(-50%);
-            background: #333;
+            background: #2d3436;
             color: #fff;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.78rem;
             font-weight: 400;
             white-space: nowrap;
             pointer-events: none;
             transition: opacity 0.2s, visibility 0.2s;
             z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .stat-card .value .tooltip::after {
             content: '';
@@ -84,20 +164,25 @@
             left: 50%;
             transform: translateX(-50%);
             border: 5px solid transparent;
-            border-top-color: #333;
+            border-top-color: #2d3436;
         }
         .stat-card .value:hover .tooltip {
             visibility: visible;
             opacity: 1;
         }
 
-        /* 图表区 */
+        /* ── 图表区 ── */
         .chart-box {
             background: white;
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.04);
+            transition: box-shadow 0.2s;
+        }
+        .chart-box:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
         .chart-box .chart-header {
             display: flex;
@@ -105,60 +190,121 @@
             align-items: center;
             margin-bottom: 1rem;
         }
-        .chart-box h2 { font-size: 1.1rem; color: #555; margin: 0; }
+        .chart-box h2 {
+            font-size: 1rem;
+            color: #444;
+            margin: 0;
+            font-weight: 600;
+        }
         .chart-box canvas { width: 100% !important; }
         .reset-btn {
-            padding: 4px 12px;
-            font-size: 0.78rem;
+            padding: 5px 14px;
+            font-size: 0.75rem;
             color: #888;
-            background: #f0f0f0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            background: #f5f6f8;
+            border: 1px solid #e8ecf0;
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s;
+            font-weight: 500;
         }
-        .reset-btn:hover { background: #e0e0e0; color: #555; }
+        .reset-btn:hover {
+            background: #e8ecf0;
+            color: #555;
+        }
         .zoom-hint {
             text-align: center;
-            font-size: 0.78rem;
-            color: #aaa;
-            margin-top: 0.4rem;
+            font-size: 0.72rem;
+            color: #c0c8d0;
+            margin-top: 0.5rem;
         }
 
+        /* ── 状态栏 ── */
         .status {
             text-align: center;
-            padding: 0.5rem;
-            font-size: 0.85rem;
-            color: #888;
+            padding: 0.8rem;
+            font-size: 0.82rem;
+            color: #999;
         }
         .status .dot {
             display: inline-block;
-            width: 8px; height: 8px;
+            width: 7px;
+            height: 7px;
             background: #4caf50;
             border-radius: 50%;
             margin-right: 4px;
             animation: blink 2s infinite;
+            vertical-align: middle;
         }
         @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* ── 页脚 ── */
+        .footer {
+            text-align: center;
+            padding: 1.2rem;
+            font-size: 0.78rem;
+            color: #b0b8c4;
+            border-top: 1px solid #e8ecf0;
+            margin-top: 1rem;
+        }
+        .footer a { color: #00a1d6; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+
+        /* ── 响应式 ── */
+        @media (max-width: 640px) {
+            .header { padding: 1rem; }
+            .header h1 { font-size: 1rem; }
+            .current-stats { grid-template-columns: repeat(3, 1fr); }
+            .stat-card .value { font-size: 1.1rem; }
+            .chart-box { padding: 1rem; }
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <a href="/">← 返回</a>
+        <a class="back-btn" href="/">← 返回</a>
         <div class="title-area">
-            <h1><a href="https://www.bilibili.com/video/{{ bvid }}" target="_blank" style="color: white; text-decoration: none;" title="前往B站观看">{{ info.title if info else bvid }} ↗</a></h1>
+            <h1>
+                <a href="https://www.bilibili.com/video/{{ bvid }}" target="_blank" title="前往B站观看">
+                    {{ info.title if info else bvid }}<span class="link-icon">↗</span>
+                </a>
+            </h1>
             <p>{% if info %}UP主: {{ info.owner_name }} · {% endif %}{{ bvid }}</p>
         </div>
     </div>
 
     <div class="container">
         <div class="current-stats" id="currentStats">
-            <div class="stat-card"><div class="label">播放量</div><div class="value" id="curView">-<span class="tooltip" id="tipView"></span></div></div>
-            <div class="stat-card"><div class="label">点赞</div><div class="value" id="curLike">-<span class="tooltip" id="tipLike"></span></div></div>
-            <div class="stat-card"><div class="label">投币</div><div class="value" id="curCoin">-<span class="tooltip" id="tipCoin"></span></div></div>
-            <div class="stat-card"><div class="label">收藏</div><div class="value" id="curFav">-<span class="tooltip" id="tipFav"></span></div></div>
-            <div class="stat-card"><div class="label">分享</div><div class="value" id="curShare">-<span class="tooltip" id="tipShare"></span></div></div>
-            <div class="stat-card"><div class="label">弹幕</div><div class="value" id="curDanmaku">-<span class="tooltip" id="tipDanmaku"></span></div></div>
+            <div class="stat-card">
+                <span class="icon">▶️</span>
+                <div class="label">播放量</div>
+                <div class="value" id="curView">-<span class="tooltip" id="tipView"></span></div>
+            </div>
+            <div class="stat-card">
+                <span class="icon">👍</span>
+                <div class="label">点赞</div>
+                <div class="value" id="curLike">-<span class="tooltip" id="tipLike"></span></div>
+            </div>
+            <div class="stat-card">
+                <span class="icon">🪙</span>
+                <div class="label">投币</div>
+                <div class="value" id="curCoin">-<span class="tooltip" id="tipCoin"></span></div>
+            </div>
+            <div class="stat-card">
+                <span class="icon">⭐</span>
+                <div class="label">收藏</div>
+                <div class="value" id="curFav">-<span class="tooltip" id="tipFav"></span></div>
+            </div>
+            <div class="stat-card">
+                <span class="icon">🔗</span>
+                <div class="label">分享</div>
+                <div class="value" id="curShare">-<span class="tooltip" id="tipShare"></span></div>
+            </div>
+            <div class="stat-card">
+                <span class="icon">💬</span>
+                <div class="label">弹幕</div>
+                <div class="value" id="curDanmaku">-<span class="tooltip" id="tipDanmaku"></span></div>
+            </div>
         </div>
 
         <div class="chart-box">
@@ -202,6 +348,10 @@
         </div>
     </div>
 
+    <div class="footer">
+        BV Monitor · 本地部署 · 数据来源 <a href="https://www.bilibili.com" target="_blank">bilibili</a>
+    </div>
+
     <script>
         const BVID = "{{ bvid }}";
         const charts = {};
@@ -224,16 +374,11 @@
             return value.toLocaleString();
         }
 
-        /**
-         * 从数据数组直接计算 Y 轴 min/max（不依赖 chart.scales）
-         * 保证曲线填满图表高度，且不出现负数
-         */
         function calcBounds(data) {
             if (!data || data.length === 0) return { min: 0, max: 100 };
             const lo = Math.min(...data);
             const hi = Math.max(...data);
             let range = hi - lo;
-            // 如果值几乎不变，取值的 0.5% 作为展示范围
             if (range < 1) range = Math.max(hi * 0.005, 1);
             const pad = range * 0.15;
             return {
@@ -242,9 +387,6 @@
             };
         }
 
-        /**
-         * 拖拽选区后，根据可见区间内数据自动适配 Y 轴
-         */
         function autoFitY(chart) {
             const xScale = chart.scales.x;
             const minIdx = Math.max(0, Math.floor(xScale.min));
@@ -267,11 +409,19 @@
         function makeOpts(label) {
             return {
                 responsive: true,
-                animation: { duration: 300 },
+                animation: { duration: 400 },
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
+                        backgroundColor: '#2d3436',
+                        titleColor: '#dfe6e9',
+                        bodyColor: '#fff',
+                        titleFont: { size: 12 },
+                        bodyFont: { size: 13, weight: '600' },
+                        padding: 10,
+                        cornerRadius: 8,
+                        displayColors: false,
                         callbacks: {
                             label: ctx => (label || ctx.dataset.label) + ': ' + ctx.parsed.y.toLocaleString()
                         }
@@ -280,8 +430,8 @@
                         zoom: {
                             drag: {
                                 enabled: true,
-                                backgroundColor: 'rgba(0,161,214,0.1)',
-                                borderColor: 'rgba(0,161,214,0.4)',
+                                backgroundColor: 'rgba(0,161,214,0.08)',
+                                borderColor: 'rgba(0,161,214,0.3)',
                                 borderWidth: 1,
                             },
                             mode: 'x',
@@ -291,9 +441,13 @@
                     }
                 },
                 scales: {
-                    x: { ticks: { maxRotation: 45, font: { size: 11 } } },
+                    x: {
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        ticks: { maxRotation: 45, font: { size: 11 }, color: '#999' }
+                    },
                     y: {
-                        ticks: { callback: formatAxis },
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        ticks: { callback: formatAxis, color: '#999', font: { size: 11 } },
                         min: 0,
                         max: 100
                     }
@@ -303,7 +457,6 @@
 
         function resetChart(chart) {
             chart.resetZoom();
-            // 重算全量数据的 Y 轴范围
             const allData = chart.data.datasets.flatMap(ds => ds.data);
             const bounds = calcBounds(allData);
             chart.options.scales.y.min = bounds.min;
@@ -311,31 +464,31 @@
             chart.update('none');
         }
 
-        /** 给单个图表灌入数据并自适应 Y 轴 */
         function feedChart(chart, labels, data) {
-            // 先计算好 Y 轴范围
             const bounds = calcBounds(data);
             chart.options.scales.y.min = bounds.min;
             chart.options.scales.y.max = bounds.max;
-            // 再灌入数据并渲染
             chart.data.labels = labels;
             chart.data.datasets[0].data = data;
             chart.update();
         }
 
         function makeChart(canvasId, label, color) {
-            const rgb = color;
             return new Chart(document.getElementById(canvasId), {
                 type: 'line',
                 data: { labels: [], datasets: [{
                     label: label,
                     data: [],
                     borderColor: color,
-                    backgroundColor: color + '18',
+                    backgroundColor: color + '15',
                     fill: true,
-                    tension: 0.3,
+                    tension: 0.35,
                     pointRadius: 3,
-                    borderWidth: 2
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: color,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    borderWidth: 2.5
                 }]},
                 options: makeOpts(label)
             });
@@ -345,7 +498,7 @@
             charts.view = makeChart('viewChart', '播放量', '#00a1d6');
             charts.like = makeChart('likeChart', '点赞', '#ff6b81');
             charts.coin = makeChart('coinChart', '投币', '#ffa502');
-            charts.fav  = makeChart('favChart', '收藏', '#2ed573');
+            charts.fav  = makeChart('favChart',  '收藏', '#2ed573');
         }
 
         async function fetchData() {
@@ -355,7 +508,6 @@
                 const stats = data.stats;
                 if (!stats || stats.length === 0) return;
 
-                // 更新卡片数值
                 const latest = stats[stats.length - 1];
                 updateStat('curView', 'tipView', latest.view);
                 updateStat('curLike', 'tipLike', latest.like);
@@ -366,7 +518,6 @@
 
                 const labels = stats.map(s => s.timestamp.slice(11));
 
-                // 每个图表各自灌数据 + 自适应 Y 轴
                 feedChart(charts.view, labels, stats.map(s => s.view));
                 feedChart(charts.like, labels, stats.map(s => s.like));
                 feedChart(charts.coin, labels, stats.map(s => s.coin));

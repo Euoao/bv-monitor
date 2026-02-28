@@ -7,115 +7,297 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #f5f7fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            background: #f0f2f5;
             color: #333;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        .header {
-            background: linear-gradient(135deg, #00a1d6, #0078d4);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-        .header h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
-        .header p { opacity: 0.9; font-size: 0.95rem; }
-        .container { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
 
-        /* 输入区 */
+        /* ── 顶栏 ── */
+        .header {
+            background: linear-gradient(135deg, #00a1d6 0%, #0078d4 50%, #6a5acd 100%);
+            color: white;
+            padding: 2.5rem 2rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%);
+            animation: headerPulse 8s ease-in-out infinite;
+        }
+        @keyframes headerPulse {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(5%, 3%); }
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            position: relative;
+            letter-spacing: 1px;
+        }
+        .header p {
+            opacity: 0.85;
+            font-size: 0.95rem;
+            position: relative;
+            font-weight: 300;
+        }
+
+        /* ── 主体 ── */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            flex: 1;
+            width: 100%;
+        }
+
+        /* ── 输入区 ── */
         .input-area {
             background: white;
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
             display: flex;
             gap: 0.8rem;
             align-items: center;
+            border: 1px solid rgba(0,0,0,0.04);
+        }
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+        .input-wrapper .icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1rem;
+            opacity: 0.4;
         }
         .input-area input {
-            flex: 1;
-            padding: 0.75rem 1rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1rem;
+            width: 100%;
+            padding: 0.8rem 1rem 0.8rem 2.6rem;
+            border: 2px solid #e8ecf0;
+            border-radius: 10px;
+            font-size: 0.95rem;
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.25s, box-shadow 0.25s;
+            background: #fafbfc;
         }
-        .input-area input:focus { border-color: #00a1d6; }
+        .input-area input:focus {
+            border-color: #00a1d6;
+            box-shadow: 0 0 0 3px rgba(0,161,214,0.12);
+            background: white;
+        }
+        .input-area input::placeholder { color: #b0b8c4; }
         .input-area button {
-            padding: 0.75rem 1.5rem;
-            background: #00a1d6;
+            padding: 0.8rem 1.6rem;
+            background: linear-gradient(135deg, #00a1d6, #0078d4);
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 1rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.25s;
             white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,161,214,0.3);
         }
-        .input-area button:hover { background: #0089b8; }
-        .input-area button:disabled { background: #ccc; cursor: not-allowed; }
+        .input-area button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,161,214,0.4);
+        }
+        .input-area button:active { transform: translateY(0); }
+        .input-area button:disabled {
+            background: #c0c8d0;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
 
-        /* 提示 */
+        /* ── 提示 ── */
         .msg {
-            padding: 0.8rem 1rem;
-            border-radius: 8px;
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
             margin-bottom: 1rem;
             display: none;
             font-size: 0.9rem;
+            font-weight: 500;
+            animation: slideDown 0.3s ease;
         }
-        .msg.ok { background: #e6f9ee; color: #1a7f37; display: block; }
-        .msg.err { background: #fde8e8; color: #c53030; display: block; }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .msg.ok {
+            background: linear-gradient(135deg, #e6f9ee, #d4f5e0);
+            color: #1a7f37;
+            border: 1px solid #b4e6c8;
+            display: block;
+        }
+        .msg.err {
+            background: linear-gradient(135deg, #fde8e8, #fdd);
+            color: #c53030;
+            border: 1px solid #f5b4b4;
+            display: block;
+        }
 
-        /* 监控列表 */
-        .monitor-list { display: flex; flex-direction: column; gap: 1rem; }
+        /* ── 列表标题 ── */
+        .section-title {
+            font-size: 0.85rem;
+            color: #8c939a;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            padding-left: 4px;
+        }
+
+        /* ── 监控列表 ── */
+        .monitor-list { display: flex; flex-direction: column; gap: 0.8rem; }
         .monitor-card {
             background: white;
-            border-radius: 12px;
-            padding: 1.2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 14px;
+            padding: 1rem 1.2rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
             display: flex;
             align-items: center;
             gap: 1rem;
-            transition: transform 0.15s;
+            transition: all 0.25s ease;
+            border: 1px solid rgba(0,0,0,0.04);
+            position: relative;
+            overflow: hidden;
         }
-        .monitor-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
-        .monitor-card img {
-            width: 120px;
-            height: 75px;
-            object-fit: cover;
-            border-radius: 8px;
+        .monitor-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, #00a1d6, #6a5acd);
+            border-radius: 4px 0 0 4px;
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+        .monitor-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        }
+        .monitor-card:hover::before { opacity: 1; }
+        .card-cover {
+            width: 140px;
+            height: 88px;
+            border-radius: 10px;
+            overflow: hidden;
             flex-shrink: 0;
+            background: #f0f2f5;
         }
+        .card-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        .monitor-card:hover .card-cover img { transform: scale(1.05); }
         .monitor-card .info { flex: 1; min-width: 0; }
         .monitor-card .info h3 {
-            font-size: 1rem;
-            margin-bottom: 0.3rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            color: #1a1a2e;
+            line-height: 1.4;
         }
-        .monitor-card .info p { font-size: 0.85rem; color: #666; }
+        .monitor-card .info p {
+            font-size: 0.82rem;
+            color: #8c939a;
+        }
         .monitor-card .actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
         .btn-sm {
             padding: 0.5rem 1rem;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 0.85rem;
-            transition: background 0.2s;
+            font-size: 0.82rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
-        .btn-chart { background: #00a1d6; color: white; text-decoration: none; }
-        .btn-chart:hover { background: #0089b8; }
-        .btn-del { background: #ff6b6b; color: white; }
-        .btn-del:hover { background: #e05555; }
+        .btn-chart {
+            background: linear-gradient(135deg, #00a1d6, #0078d4);
+            color: white;
+            box-shadow: 0 2px 6px rgba(0,161,214,0.25);
+        }
+        .btn-chart:hover {
+            box-shadow: 0 4px 12px rgba(0,161,214,0.35);
+            transform: translateY(-1px);
+        }
+        .btn-del {
+            background: #fff0f0;
+            color: #e05555;
+            border: 1px solid #fdd;
+        }
+        .btn-del:hover {
+            background: #ffe0e0;
+        }
 
         .empty {
             text-align: center;
-            padding: 3rem;
-            color: #999;
-            font-size: 1.1rem;
+            padding: 4rem 2rem;
+            color: #b0b8c4;
+        }
+        .empty .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+            opacity: 0.6;
+        }
+        .empty .empty-text {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* ── 页脚 ── */
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.78rem;
+            color: #b0b8c4;
+            border-top: 1px solid #e8ecf0;
+            margin-top: 2rem;
+        }
+        .footer a {
+            color: #00a1d6;
+            text-decoration: none;
+        }
+        .footer a:hover { text-decoration: underline; }
+
+        /* ── 响应式 ── */
+        @media (max-width: 640px) {
+            .header h1 { font-size: 1.5rem; }
+            .input-area { flex-direction: column; }
+            .input-area button { width: 100%; }
+            .monitor-card { flex-direction: column; text-align: center; padding: 1.2rem; }
+            .card-cover { width: 100%; height: 160px; }
+            .monitor-card .actions { width: 100%; justify-content: center; }
+            .monitor-card .info h3 { white-space: normal; }
         }
     </style>
 </head>
@@ -127,18 +309,27 @@
 
     <div class="container">
         <div class="input-area">
-            <input type="text" id="bvInput" placeholder="输入BV号，例如 BV1xx411c7mD" />
+            <div class="input-wrapper">
+                <span class="icon">🔍</span>
+                <input type="text" id="bvInput" placeholder="输入 BV 号，例如 BV1xx411c7mD" />
+            </div>
             <button id="addBtn" onclick="addMonitor()">开始监控</button>
         </div>
 
         <div class="msg" id="msg"></div>
+
+        {% if monitors %}
+        <div class="section-title">监控列表 · {{ monitors | length }} 个视频</div>
+        {% endif %}
 
         <div class="monitor-list" id="monitorList">
             {% if monitors %}
                 {% for m in monitors %}
                 <div class="monitor-card" id="card-{{ m.bvid }}">
                     {% if m.info %}
-                    <img src="{{ m.info.pic | replace('http://', 'https://') }}" alt="封面" referrerpolicy="no-referrer" />
+                    <div class="card-cover">
+                        <img src="{{ m.info.pic | replace('http://', 'https://') }}" alt="封面" referrerpolicy="no-referrer" />
+                    </div>
                     <div class="info">
                         <h3>{{ m.info.title }}</h3>
                         <p>UP主: {{ m.info.owner_name }} · {{ m.bvid }}</p>
@@ -146,19 +337,26 @@
                     {% else %}
                     <div class="info">
                         <h3>{{ m.bvid }}</h3>
-                        <p>加载中...</p>
+                        <p>视频信息加载中...</p>
                     </div>
                     {% endif %}
                     <div class="actions">
-                        <a class="btn-sm btn-chart" href="/chart/{{ m.bvid }}">查看趋势</a>
+                        <a class="btn-sm btn-chart" href="/chart/{{ m.bvid }}">📈 查看趋势</a>
                         <button class="btn-sm btn-del" onclick="removeMonitor('{{ m.bvid }}')">移除</button>
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="empty" id="emptyTip">还没有监控任何视频，输入BV号开始吧 🎬</div>
+                <div class="empty" id="emptyTip">
+                    <span class="empty-icon">🎬</span>
+                    <div class="empty-text">还没有监控任何视频<br>在上方输入 BV 号开始吧</div>
+                </div>
             {% endif %}
         </div>
+    </div>
+
+    <div class="footer">
+        BV Monitor · 本地部署 · 数据来源 <a href="https://www.bilibili.com" target="_blank">bilibili</a>
     </div>
 
     <script>
@@ -173,7 +371,7 @@
             const input = document.getElementById('bvInput');
             const btn = document.getElementById('addBtn');
             const bvid = input.value.trim();
-            if (!bvid) { showMsg('请输入BV号', false); return; }
+            if (!bvid) { showMsg('请输入 BV 号', false); return; }
 
             btn.disabled = true;
             btn.textContent = '添加中...';
@@ -183,7 +381,6 @@
                 if (data.success) {
                     showMsg('✅ ' + data.msg, true);
                     input.value = '';
-                    // 刷新页面显示新卡片
                     setTimeout(() => location.reload(), 500);
                 } else {
                     showMsg('❌ ' + data.msg, false);
@@ -197,11 +394,26 @@
         }
 
         async function removeMonitor(bvid) {
-            if (!confirm('确定移除该监控？')) return;
+            if (!confirm('确定移除该视频的监控？')) return;
             try {
                 await fetch(`/api/monitor?bvid=${encodeURIComponent(bvid)}`, { method: 'DELETE' });
                 const card = document.getElementById('card-' + bvid);
-                if (card) card.remove();
+                if (card) {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(30px)';
+                    setTimeout(() => {
+                        card.remove();
+                        // 如果列表空了，显示空提示
+                        const list = document.getElementById('monitorList');
+                        if (!list.querySelector('.monitor-card')) {
+                            list.innerHTML = '<div class="empty"><span class="empty-icon">🎬</span><div class="empty-text">还没有监控任何视频<br>在上方输入 BV 号开始吧</div></div>';
+                            // 隐藏列表标题
+                            const title = document.querySelector('.section-title');
+                            if (title) title.style.display = 'none';
+                        }
+                    }, 300);
+                }
                 showMsg('已移除监控', true);
             } catch (e) {
                 showMsg('操作失败', false);
