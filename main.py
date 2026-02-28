@@ -1,5 +1,8 @@
 """B站视频数据实时监控工具 - 主入口"""
 
+import setproctitle
+setproctitle.setproctitle("bv-monitor")
+
 import uvicorn
 from app import create_app
 
