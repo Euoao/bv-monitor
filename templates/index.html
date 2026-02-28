@@ -304,6 +304,14 @@
             margin-bottom: 0.35rem;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        .monitor-card .info h3 a {
+            color: #333;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .monitor-card .info h3 a:hover {
+            color: #00a1d6;
             white-space: nowrap;
             color: #1a1a2e;
             line-height: 1.4;
@@ -498,7 +506,7 @@
                         <img src="{{ m.info.pic | replace('http://', 'https://') }}" alt="封面" referrerpolicy="no-referrer" />
                     </div>
                     <div class="info">
-                        <h3>{{ m.info.title }}</h3>
+                        <h3><a href="https://www.bilibili.com/video/{{ m.bvid }}" target="_blank" title="前往B站观看">{{ m.info.title }}</a></h3>
                         <p class="meta">UP主: {{ m.info.owner_name }} · {{ m.bvid }}</p>
                         {% if m.latest_stat %}
                         <div class="card-stats">
