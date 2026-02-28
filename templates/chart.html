@@ -312,7 +312,7 @@
                 <h2>📈 播放量趋势</h2>
                 <button class="reset-btn" onclick="resetChart(charts.view)">重置视图</button>
             </div>
-            <canvas id="viewChart" height="70"></canvas>
+            <canvas id="viewChart" height="140"></canvas>
             <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
         </div>
 
@@ -321,7 +321,7 @@
                 <h2>👍 点赞趋势</h2>
                 <button class="reset-btn" onclick="resetChart(charts.like)">重置视图</button>
             </div>
-            <canvas id="likeChart" height="70"></canvas>
+            <canvas id="likeChart" height="140"></canvas>
             <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
         </div>
 
@@ -330,7 +330,7 @@
                 <h2>🪙 投币趋势</h2>
                 <button class="reset-btn" onclick="resetChart(charts.coin)">重置视图</button>
             </div>
-            <canvas id="coinChart" height="70"></canvas>
+            <canvas id="coinChart" height="140"></canvas>
             <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
         </div>
 
@@ -339,7 +339,7 @@
                 <h2>⭐ 收藏趋势</h2>
                 <button class="reset-btn" onclick="resetChart(charts.fav)">重置视图</button>
             </div>
-            <canvas id="favChart" height="70"></canvas>
+            <canvas id="favChart" height="140"></canvas>
             <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
         </div>
 
@@ -369,7 +369,7 @@
         }
 
         function formatAxis(value) {
-            if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(2) + '亿';
+            if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(4) + '亿';
             if (Math.abs(value) >= 10000) return (value / 10000).toFixed(2) + '万';
             return value.toLocaleString();
         }
@@ -379,8 +379,13 @@
             const lo = Math.min(...data);
             const hi = Math.max(...data);
             let range = hi - lo;
-            if (range < 1) range = Math.max(hi * 0.005, 1);
-            const pad = range * 0.15;
+            if (range === 0) {
+                // 数据完全相同时，用极小浮动
+                const nudge = Math.max(hi * 0.00005, 1);
+                return { min: Math.max(0, lo - nudge), max: hi + nudge };
+            }
+            // 极小 padding，让数据几乎填满整个图表高度
+            const pad = range * 0.03;
             return {
                 min: Math.max(0, lo - pad),
                 max: hi + pad
@@ -447,7 +452,7 @@
                     },
                     y: {
                         grid: { color: 'rgba(0,0,0,0.04)' },
-                        ticks: { callback: formatAxis, color: '#999', font: { size: 11 } },
+                        ticks: { callback: formatAxis, color: '#999', font: { size: 11 }, maxTicksLimit: 8 },
                         min: 0,
                         max: 100
                     }
