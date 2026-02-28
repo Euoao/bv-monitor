@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────
 # BV Monitor - 安装 systemd 服务
-# 用法: sudo bash scripts/install.sh
+# 用法: sudo bash scripts/install.sh [端口号]
+# 示例: sudo bash scripts/install.sh 9000
 # ──────────────────────────────────────────────
 set -euo pipefail
 
 SERVICE_NAME="bv-monitor"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+PORT="${1:-8000}"
 
 # ── 路径检测 ──
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -39,6 +41,7 @@ RUN_GROUP="$(stat -c '%G' "$PROJECT_DIR")"
 echo "🔧 安装 BV Monitor 服务..."
 echo "   项目目录: $PROJECT_DIR"
 echo "   运行用户: $RUN_USER"
+echo "   监听端口: $PORT"
 
 # ── 如果已有旧服务，先停掉 ──
 if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
@@ -57,7 +60,7 @@ Type=simple
 User=$RUN_USER
 Group=$RUN_GROUP
 WorkingDirectory=$PROJECT_DIR
-ExecStart=$VENV_UVICORN main:app --host 127.0.0.1 --port 8000
+ExecStart=$VENV_UVICORN main:app --host 127.0.0.1 --port $PORT
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -75,7 +78,7 @@ systemctl start "$SERVICE_NAME"
 echo ""
 echo "✅ 服务已安装并启动！"
 echo ""
-echo "   访问地址: http://localhost:8000"
+echo "   访问地址: http://localhost:$PORT"
 echo ""
 echo "   常用命令:"
 echo "     查看状态   systemctl status $SERVICE_NAME"
