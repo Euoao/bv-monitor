@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>趋势图 - {{ info.title if info else bvid }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -165,19 +164,19 @@
         <div class="chart-box">
             <div class="chart-header">
                 <h2>📈 播放量趋势</h2>
-                <button class="reset-btn" onclick="viewChart.resetZoom()">重置缩放</button>
+                <button class="reset-btn" onclick="resetChart(viewChart)">重置视图</button>
             </div>
             <canvas id="viewChart" height="80"></canvas>
-            <div class="zoom-hint">滚轮缩放 · 拖拽平移 · 双指捏合</div>
+            <div class="zoom-hint">在图表上拖拽选择时间区间查看趋势</div>
         </div>
 
         <div class="chart-box">
             <div class="chart-header">
                 <h2>👍 互动数据趋势（点赞 / 投币 / 收藏）</h2>
-                <button class="reset-btn" onclick="interactChart.resetZoom()">重置缩放</button>
+                <button class="reset-btn" onclick="resetChart(interactChart)">重置视图</button>
             </div>
             <canvas id="interactChart" height="80"></canvas>
-            <div class="zoom-hint">滚轮缩放 · 拖拽平移 · 双指捏合</div>
+            <div class="zoom-hint">在图表上拖拽选择时间区间查看趋势</div>
         </div>
 
         <div class="status">
@@ -209,22 +208,42 @@
             return value.toLocaleString();
         }
 
-        /** 计算 Y 轴紧贴数据的 min/max，上下留 20% 余量 */
-        function calcBounds(arrays) {
-            const all = arrays.flat();
-            if (all.length === 0) return { min: 0, max: 100 };
-            let lo = Math.min(...all);
-            let hi = Math.max(...all);
+        /**
+         * 根据可见区间内的数据自动适配 Y 轴范围
+         * 保证趋势填满图表区域，且不会出现负数
+         */
+        function autoFitY(chart) {
+            const xScale = chart.scales.x;
+            const minIdx = Math.max(0, Math.floor(xScale.min));
+            const maxIdx = Math.min(chart.data.labels.length - 1, Math.ceil(xScale.max));
+
+            let allVals = [];
+            chart.data.datasets.forEach(ds => {
+                for (let i = minIdx; i <= maxIdx; i++) {
+                    if (ds.data[i] !== undefined && ds.data[i] !== null) {
+                        allVals.push(ds.data[i]);
+                    }
+                }
+            });
+
+            if (allVals.length === 0) return;
+
+            let lo = Math.min(...allVals);
+            let hi = Math.max(...allVals);
             let range = hi - lo;
-            // 如果数据几乎不变，取值的 0.1% 作为最小范围
-            if (range < 1) range = Math.max(hi * 0.001, 1);
-            const pad = range * 0.2;
-            return { min: Math.floor(lo - pad), max: Math.ceil(hi + pad) };
+            // 数据几乎不变时，取值的 0.5% 作为最小展示范围
+            if (range < 1) range = Math.max(hi * 0.005, 1);
+            const pad = range * 0.15;
+
+            chart.options.scales.y.min = Math.max(0, Math.floor(lo - pad));
+            chart.options.scales.y.max = Math.ceil(hi + pad);
+            chart.update('none');  // 'none' 跳过动画，避免闪烁
         }
 
         function makeOpts() {
             return {
                 responsive: true,
+                animation: { duration: 300 },
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
                     legend: { position: 'bottom' },
@@ -234,24 +253,34 @@
                         }
                     },
                     zoom: {
-                        pan: {
-                            enabled: true,
-                            mode: 'xy',
-                        },
                         zoom: {
-                            wheel: { enabled: true },
-                            pinch: { enabled: true },
-                            mode: 'xy',
+                            drag: {
+                                enabled: true,
+                                backgroundColor: 'rgba(0,161,214,0.1)',
+                                borderColor: 'rgba(0,161,214,0.4)',
+                                borderWidth: 1,
+                            },
+                            mode: 'x',
+                            onZoomComplete: ({chart}) => autoFitY(chart)
+                        },
+                        limits: {
+                            x: { minRange: 2 }
                         }
                     }
                 },
                 scales: {
                     x: { ticks: { maxRotation: 45, font: { size: 11 } } },
                     y: {
-                        ticks: { callback: formatAxis }
+                        ticks: { callback: formatAxis },
+                        min: 0
                     }
                 }
             };
+        }
+
+        function resetChart(chart) {
+            chart.resetZoom();
+            autoFitY(chart);
         }
 
         function createCharts() {
@@ -296,28 +325,20 @@
                 updateStat('curShare', 'tipShare', latest.share);
                 updateStat('curDanmaku', 'tipDanmaku', latest.danmaku);
 
-                // 更新图表
-                const labels = stats.map(s => s.timestamp.slice(11));  // 只取时间部分
+                // 更新图表数据
+                const labels = stats.map(s => s.timestamp.slice(11));
 
-                const views = stats.map(s => s.view);
                 viewChart.data.labels = labels;
-                viewChart.data.datasets[0].data = views;
-                const vBounds = calcBounds([views]);
-                viewChart.options.scales.y.min = vBounds.min;
-                viewChart.options.scales.y.max = vBounds.max;
-                viewChart.update();
+                viewChart.data.datasets[0].data = stats.map(s => s.view);
+                viewChart.update('none');
+                autoFitY(viewChart);
 
-                const likes = stats.map(s => s.like);
-                const coins = stats.map(s => s.coin);
-                const favs  = stats.map(s => s.favorite);
                 interactChart.data.labels = labels;
-                interactChart.data.datasets[0].data = likes;
-                interactChart.data.datasets[1].data = coins;
-                interactChart.data.datasets[2].data = favs;
-                const iBounds = calcBounds([likes, coins, favs]);
-                interactChart.options.scales.y.min = iBounds.min;
-                interactChart.options.scales.y.max = iBounds.max;
-                interactChart.update();
+                interactChart.data.datasets[0].data = stats.map(s => s.like);
+                interactChart.data.datasets[1].data = stats.map(s => s.coin);
+                interactChart.data.datasets[2].data = stats.map(s => s.favorite);
+                interactChart.update('none');
+                autoFitY(interactChart);
             } catch (e) {
                 console.error('获取数据失败:', e);
             }
