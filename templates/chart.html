@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>趋势图 - {{ info.title if info else bvid }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -98,8 +100,31 @@
             margin-bottom: 1.5rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        .chart-box h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #555; }
+        .chart-box .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .chart-box h2 { font-size: 1.1rem; color: #555; margin: 0; }
         .chart-box canvas { width: 100% !important; }
+        .reset-btn {
+            padding: 4px 12px;
+            font-size: 0.78rem;
+            color: #888;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .reset-btn:hover { background: #e0e0e0; color: #555; }
+        .zoom-hint {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #aaa;
+            margin-top: 0.4rem;
+        }
 
         .status {
             text-align: center;
@@ -138,13 +163,21 @@
         </div>
 
         <div class="chart-box">
-            <h2>📈 播放量趋势</h2>
+            <div class="chart-header">
+                <h2>📈 播放量趋势</h2>
+                <button class="reset-btn" onclick="viewChart.resetZoom()">重置缩放</button>
+            </div>
             <canvas id="viewChart" height="80"></canvas>
+            <div class="zoom-hint">滚轮缩放 · 拖拽平移 · 双指捏合</div>
         </div>
 
         <div class="chart-box">
-            <h2>👍 互动数据趋势（点赞 / 投币 / 收藏）</h2>
+            <div class="chart-header">
+                <h2>👍 互动数据趋势（点赞 / 投币 / 收藏）</h2>
+                <button class="reset-btn" onclick="interactChart.resetZoom()">重置缩放</button>
+            </div>
             <canvas id="interactChart" height="80"></canvas>
+            <div class="zoom-hint">滚轮缩放 · 拖拽平移 · 双指捏合</div>
         </div>
 
         <div class="status">
@@ -170,17 +203,49 @@
             tip.textContent = num.toLocaleString();
         }
 
-        function createCharts() {
-            const commonOpts = {
+        function formatAxis(value) {
+            if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(2) + '亿';
+            if (Math.abs(value) >= 10000) return (value / 10000).toFixed(1) + '万';
+            return value.toLocaleString();
+        }
+
+        function makeOpts(yGrace) {
+            return {
                 responsive: true,
                 interaction: { intersect: false, mode: 'index' },
-                plugins: { legend: { position: 'bottom' } },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toLocaleString()
+                        }
+                    },
+                    zoom: {
+                        pan: {
+                            enabled: true,
+                            mode: 'xy',
+                        },
+                        zoom: {
+                            wheel: { enabled: true },
+                            pinch: { enabled: true },
+                            mode: 'xy',
+                        }
+                    }
+                },
                 scales: {
                     x: { ticks: { maxRotation: 45, font: { size: 11 } } },
-                    y: { beginAtZero: false }
+                    y: {
+                        beginAtZero: false,
+                        grace: yGrace,
+                        ticks: {
+                            callback: formatAxis
+                        }
+                    }
                 }
             };
+        }
 
+        function createCharts() {
             viewChart = new Chart(document.getElementById('viewChart'), {
                 type: 'line',
                 data: { labels: [], datasets: [{
@@ -192,7 +257,7 @@
                     tension: 0.3,
                     pointRadius: 3
                 }]},
-                options: commonOpts
+                options: makeOpts('5%')
             });
 
             interactChart = new Chart(document.getElementById('interactChart'), {
@@ -202,7 +267,7 @@
                     { label: '投币', data: [], borderColor: '#ffa502', backgroundColor: 'rgba(255,165,2,0.1)', tension: 0.3, pointRadius: 3 },
                     { label: '收藏', data: [], borderColor: '#2ed573', backgroundColor: 'rgba(46,213,115,0.1)', tension: 0.3, pointRadius: 3 }
                 ]},
-                options: commonOpts
+                options: makeOpts('5%')
             });
         }
 
