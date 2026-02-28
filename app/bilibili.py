@@ -51,7 +51,7 @@ async def fetch_video_info(bvid: str) -> VideoInfo | None:
             return VideoInfo(
                 bvid=bvid,
                 title=d["title"],
-                pic=d["pic"],
+                pic=d["pic"].replace("http://", "https://"),
                 owner_name=d["owner"]["name"],
                 desc=d["desc"],
             )
