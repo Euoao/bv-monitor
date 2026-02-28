@@ -1,134 +1,206 @@
 # BV Monitor
 
-B 站视频数据实时监控工具。输入视频 BV 号，自动定时采集播放量、点赞、投币、收藏等指标，以趋势折线图的形式展示数据变化，部署在本地运行。
-
-## 项目简介
-
-本项目通过调用 B 站公开接口（`api.bilibili.com/x/web-interface/view`），定时获取指定视频的统计数据，并将每次采集结果持久化到本地 JSON 文件中。后端基于 FastAPI 提供 Web 服务与数据接口，前端使用 Chart.js 绘制趋势折线图，实现对视频各项数据变化的可视化追踪。
-
-核心流程：
-
-```
-输入 BV 号 → 验证并首次采集 → 定时任务每 30 秒采集 → 数据持久化 → 前端图表展示趋势
-```
+B 站视频数据实时监控工具。输入视频 BV 号，自动定时采集播放量、点赞、投币、收藏等指标，以趋势折线图展示数据变化，部署在本地运行。
 
 ## 功能特性
 
-- 支持通过 BV 号添加 / 移除视频监控
-- 后台定时采集（默认间隔 60 秒）
-- 趋势折线图展示播放量、点赞、投币、收藏等指标
-- 支持同时监控多个视频
-- 数据以 JSON 文件形式本地持久化，重启后自动延续
+- 通过 BV 号添加 / 移除视频监控，支持同时监控多个视频
+- 后台定时采集，支持全局默认间隔和单视频独立间隔设置
+- 可选间隔：10 秒、15 秒、30 秒（默认）、1 分钟、2 分钟、5 分钟
+- 趋势折线图展示播放量、点赞、投币、收藏，各指标独立纵轴
+- 图表支持拖拽选区缩放、重置视图，纵轴自适应可见数据范围
+- 数据悬浮提示显示精确数值
+- 视频封面展示，标题可跳转至 B 站视频页
+- 数据本地持久化，重启后自动延续采集
+- 统计数据采用 JSONL 追加写入，高效不重写
 
 ## 环境要求
 
 - Python >= 3.12
-- [uv](https://docs.astral.sh/uv/)
+- [uv](https://docs.astral.sh/uv/)（Python 包管理器）
+- Linux（systemd 部署需要）
 
 ## 快速开始
 
-**安装依赖：**
-
 ```bash
+# 1. 克隆项目
+git clone <repo-url> && cd bv_monitor
+
+# 2. 安装依赖
 uv sync
+
+# 3. 启动服务（开发模式，带热重载）
+uv run python main.py
 ```
 
-**启动服务：**
+启动后浏览器访问 **http://localhost:8000** 即可使用。
+
+## 使用方式
+
+1. 在首页输入视频 BV 号（如 `BV1xx411c7mD`），点击「开始监控」
+2. 系统验证 BV 号有效性后立即执行首次采集
+3. 点击视频卡片上的「📈 查看趋势」进入图表页，查看各项数据的变化曲线
+4. 后台按设定间隔自动采集，图表页同步自动刷新
+
+### 采集间隔配置
+
+- **全局间隔**：首页输入框右侧的 ⚙️ 图标，点击弹出菜单选择
+- **单视频间隔**：视频卡片上的 ⏱ 标签，点击弹出菜单选择；设为「跟随全局」则使用全局间隔
+
+## 部署
+
+### 方式一：前台运行（开发 / 调试）
 
 ```bash
 uv run python main.py
 ```
 
-启动后在浏览器访问 http://localhost:8000 即可使用。
+- 占用当前终端，关闭终端则服务停止
+- 默认开启热重载（`reload=True`），修改代码后自动重启
+- 按 `Ctrl + C` 停止
 
-## 使用方式
+### 方式二：systemd 服务（推荐生产部署）
 
-1. 在首页输入视频 BV 号（例如 `BV1xx411c7mD`），点击「开始监控」
-2. 系统会验证 BV 号有效性，验证通过后立即执行一次数据采集
-3. 点击「查看趋势」进入图表页面，查看播放量及互动数据的变化曲线
-4. 后台每 30 秒自动采集一次，图表页面同步自动刷新
+**安装并启动服务：**
 
-## 运行机制
-
-### 启动行为
-
-程序启动后会执行以下操作：
-
-1. 在 `0.0.0.0:8000` 启动 Web 服务
-2. 启动后台定时任务（APScheduler），每 30 秒对所有已监控的 BV 号调用 B 站 API 采集数据
-3. 采集结果追加写入 `data/` 目录下对应的 JSON 文件
-
-终端会输出如下日志表示启动成功：
-
-```
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Application startup complete.
+```bash
+sudo bash scripts/install.sh
 ```
 
-### 运行方式
+脚本会自动检测项目路径和运行用户，生成 systemd service 文件，启用开机自启并立即启动服务。
 
-程序默认以**前台方式**运行，占用当前终端窗口。关闭终端会导致服务停止。
+**常用管理命令：**
 
-如需后台运行：
+```bash
+# 查看状态
+systemctl status bv-monitor
+
+# 查看实时日志
+journalctl -u bv-monitor -f
+
+# 重启服务
+sudo systemctl restart bv-monitor
+
+# 停止服务
+sudo systemctl stop bv-monitor
+```
+
+**卸载服务：**
+
+```bash
+sudo bash scripts/uninstall.sh
+```
+
+> 卸载仅移除 systemd 服务配置，`data/` 目录中的采集数据不会被删除。
+
+### 方式三：后台进程
 
 ```bash
 nohup uv run python main.py > bv_monitor.log 2>&1 &
 ```
 
-### 停止服务
-
-- 前台运行：终端中按 `Ctrl + C`
-- 后台运行：
+停止时需手动查找并终止进程：
 
 ```bash
 ps aux | grep main.py
 kill <PID>
 ```
 
-### 数据存储
-
-采集数据保存在项目根目录的 `data/` 文件夹中（首次运行时自动创建）：
-
-| 文件 | 说明 |
-| --- | --- |
-| `data/_monitors.json` | 当前监控的 BV 号列表 |
-| `data/<BV号>.json` | 对应视频的基本信息与全部历史采集数据 |
-
-- 数据格式为 JSON，可直接查看或二次处理
-- 服务停止后数据不会丢失，下次启动会在已有数据上继续追加
-- `data/` 已加入 `.gitignore`，不会提交到版本库
-
-## 注意事项
-
-- 开发模式下默认开启热重载（`reload=True`），修改代码后服务会自动重启
-- B 站接口存在访问频率限制，同时监控的视频数量建议不超过 20 个
-- 默认端口为 `8000`，可在 `main.py` 中修改 `port` 参数
-
 ## 项目结构
 
 ```
 bv_monitor/
-├── main.py                # 入口文件，启动 uvicorn 服务
-├── pyproject.toml         # 项目配置与依赖声明
-├── app/
-│   ├── __init__.py        # 应用工厂，组装路由与生命周期
-│   ├── bilibili.py        # B 站 API 封装（视频信息 / 统计数据）
-│   ├── store.py           # 数据持久化（JSON 文件读写）
-│   ├── scheduler.py       # 定时采集任务（APScheduler）
-│   └── routes.py          # HTTP 路由与页面渲染
-├── templates/
-│   ├── index.html         # 首页（监控管理）
-│   └── chart.html         # 趋势图页面
-└── data/                  # 运行时生成，存放采集数据
+├── main.py                  # 入口文件，启动 uvicorn 服务
+├── pyproject.toml            # 项目元信息与依赖声明
+├── uv.lock                  # uv 锁定文件，确保依赖版本一致
+├── .gitignore                # Git 忽略规则
+├── README.md                 # 项目文档
+│
+├── app/                      # 后端应用代码
+│   ├── __init__.py           # 应用工厂：创建 FastAPI 实例，组装路由与生命周期
+│   ├── bilibili.py           # B 站 API 封装：获取视频信息与统计数据
+│   ├── store.py              # 数据持久化：JSON 元信息 + JSONL 统计数据
+│   ├── scheduler.py          # 定时采集：APScheduler 管理每个视频的独立采集任务
+│   └── routes.py             # HTTP 路由：页面渲染与 RESTful API
+│
+├── templates/                # Jinja2 HTML 模板
+│   ├── index.html            # 首页：监控管理、添加/移除视频、间隔设置
+│   └── chart.html            # 趋势图页：Chart.js 折线图、拖拽缩放
+│
+├── scripts/                  # 运维脚本
+│   ├── install.sh            # 安装 systemd 服务（开机自启）
+│   └── uninstall.sh          # 卸载 systemd 服务
+│
+├── static/                   # 静态资源目录（预留）
+│
+└── data/                     # 运行时数据（自动创建，已 gitignore）
+    ├── _config.json           # 全局配置（采集间隔等）
+    ├── _monitors.json         # 当前监控的 BV 号列表
+    ├── <BV号>.json            # 视频元信息（标题、封面、UP主等）
+    └── <BV号>_stats.jsonl     # 统计数据（每行一条 JSON，追加写入）
 ```
+
+### 各模块说明
+
+| 模块 | 职责 |
+| --- | --- |
+| `main.py` | 程序入口，调用 `create_app()` 创建应用并启动 uvicorn |
+| `app/__init__.py` | 应用工厂，注册路由、挂载静态文件、管理生命周期（启动/关闭调度器） |
+| `app/bilibili.py` | 封装 B 站 Web API，提供 `fetch_video_info` 和 `fetch_video_stat` 两个异步函数 |
+| `app/store.py` | 数据存储层，元信息用 JSON 全量读写，统计数据用 JSONL 追加写入（O(1)），含旧格式自动迁移 |
+| `app/scheduler.py` | 基于 APScheduler 的定时采集，每个视频一个独立 Job，支持动态调整间隔 |
+| `app/routes.py` | FastAPI 路由，包含首页、图表页渲染以及监控管理、配置、统计数据的 RESTful API |
+
+## 数据存储
+
+采集数据保存在 `data/` 目录（首次运行时自动创建，已加入 `.gitignore`）：
+
+| 文件 | 格式 | 说明 |
+| --- | --- | --- |
+| `_config.json` | JSON | 全局配置，如默认采集间隔 |
+| `_monitors.json` | JSON | 当前监控的 BV 号数组 |
+| `<BV号>.json` | JSON | 视频元信息（标题、封面、UP 主等）及可选的独立采集间隔 |
+| `<BV号>_stats.jsonl` | JSONL | 统计数据，每行一条 JSON 记录（播放量、点赞等 + 时间戳） |
+
+**JSONL 格式示例**（每行一条）：
+
+```json
+{"bvid": "BV1xx411c7mD", "view": 1234567, "like": 45678, "coin": 12345, "favorite": 6789, "share": 1234, "danmaku": 5678, "reply": 2345, "timestamp": "2026-03-01 12:00:00"}
+```
+
+- 统计数据采用追加写入（`append`），不会重写整个文件
+- 服务停止后数据不丢失，重启后自动继续采集
+- 数据可直接用文本编辑器查看或用脚本二次处理
+
+## API 接口
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/` | 首页 |
+| `GET` | `/chart/{bvid}` | 趋势图页面 |
+| `POST` | `/api/monitor?bvid=BVxxx` | 添加监控 |
+| `DELETE` | `/api/monitor?bvid=BVxxx` | 移除监控 |
+| `GET` | `/api/stats/{bvid}` | 获取视频统计数据 |
+| `GET` | `/api/config` | 获取全局配置 |
+| `PUT` | `/api/config/interval` | 修改全局采集间隔 |
+| `PUT` | `/api/video/{bvid}/interval` | 修改单视频采集间隔 |
 
 ## 技术栈
 
 | 组件 | 用途 |
 | --- | --- |
-| FastAPI | Web 框架与 API 服务 |
-| httpx | 异步 HTTP 客户端 |
-| APScheduler | 后台定时任务调度 |
-| Jinja2 | HTML 模板渲染 |
-| Chart.js | 前端趋势图表 |
-| uv | Python 包管理与虚拟环境 |
+| [FastAPI](https://fastapi.tiangolo.com/) | Web 框架与 API 服务 |
+| [uvicorn](https://www.uvicorn.org/) | ASGI 服务器 |
+| [httpx](https://www.python-httpx.org/) | 异步 HTTP 客户端 |
+| [APScheduler](https://apscheduler.readthedocs.io/) | 后台定时任务调度 |
+| [Jinja2](https://jinja.palletsprojects.com/) | HTML 模板渲染 |
+| [Chart.js](https://www.chartjs.org/) | 前端趋势图表 |
+| [chartjs-plugin-zoom](https://www.chartjs.org/chartjs-plugin-zoom/) | 图表拖拽缩放 |
+| [uv](https://docs.astral.sh/uv/) | Python 包管理与虚拟环境 |
+
+## 注意事项
+
+- B 站接口存在访问频率限制，同时监控的视频数量建议不超过 20 个
+- 采集间隔过短（如 10 秒）可能触发限流，建议根据监控数量适当调大
+- 默认端口为 `8000`，可在 `main.py` 中修改 `port` 参数
+- 开发模式默认开启热重载，systemd 部署不使用热重载
