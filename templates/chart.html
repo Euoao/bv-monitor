@@ -440,7 +440,7 @@
                                 borderWidth: 1,
                             },
                             mode: 'x',
-                            onZoomComplete: ({chart}) => autoFitY(chart)
+                            onZoomComplete: ({chart}) => setTimeout(() => autoFitY(chart), 50)
                         },
                         limits: { x: { minRange: 2 } }
                     }
