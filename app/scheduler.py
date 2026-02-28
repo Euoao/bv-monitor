@@ -8,6 +8,8 @@ from .store import DataStore
 
 scheduler = BackgroundScheduler()
 
+JOB_ID = "collect_job"
+
 
 def _collect_task():
     """定时采集任务（同步包装异步调用）"""
@@ -30,14 +32,12 @@ async def _collect_all():
 
 async def collect_one(bvid: str) -> bool:
     """采集单个视频数据（供API调用）"""
-    # 获取视频信息（如果还没有）
     if not DataStore.get_info(bvid):
         info = await fetch_video_info(bvid)
         if not info:
             return False
         DataStore.save_info(info)
 
-    # 获取统计数据
     stat = await fetch_video_stat(bvid)
     if not stat:
         return False
@@ -46,9 +46,23 @@ async def collect_one(bvid: str) -> bool:
 
 
 def start_scheduler():
-    """启动定时采集，每30秒采集一次"""
-    scheduler.add_job(_collect_task, "interval", seconds=30, id="collect_job")
+    """启动定时采集，间隔从配置读取"""
+    interval = DataStore.get_config().get("interval", 30)
+    scheduler.add_job(_collect_task, "interval", seconds=interval, id=JOB_ID)
     scheduler.start()
+
+
+def reschedule(seconds: int):
+    """动态修改采集间隔（秒）"""
+    scheduler.reschedule_job(JOB_ID, trigger="interval", seconds=seconds)
+
+
+def get_current_interval() -> int:
+    """获取当前采集间隔"""
+    job = scheduler.get_job(JOB_ID)
+    if job and job.trigger:
+        return int(job.trigger.interval.total_seconds())
+    return DataStore.get_config().get("interval", 30)
 
 
 def shutdown_scheduler():

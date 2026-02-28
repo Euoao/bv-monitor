@@ -11,11 +11,44 @@ from .bilibili import VideoStat, VideoInfo
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
+# 默认配置
+_DEFAULT_CONFIG = {
+    "interval": 30,  # 采集间隔（秒）
+}
+
 
 class DataStore:
     """线程安全的数据存储"""
 
     _lock = Lock()
+
+    # ── 配置 ──
+
+    @classmethod
+    def _config_file(cls) -> Path:
+        return DATA_DIR / "_config.json"
+
+    @classmethod
+    def get_config(cls) -> dict:
+        """获取全局配置"""
+        f = cls._config_file()
+        if not f.exists():
+            return dict(_DEFAULT_CONFIG)
+        with open(f, "r", encoding="utf-8") as fh:
+            cfg = json.load(fh)
+        # 补齐默认值
+        for k, v in _DEFAULT_CONFIG.items():
+            cfg.setdefault(k, v)
+        return cfg
+
+    @classmethod
+    def set_config(cls, patch: dict):
+        """更新配置（合并写入）"""
+        with cls._lock:
+            cfg = cls.get_config()
+            cfg.update(patch)
+            with open(cls._config_file(), "w", encoding="utf-8") as fh:
+                json.dump(cfg, fh, ensure_ascii=False, indent=2)
 
     @classmethod
     def _get_file(cls, bvid: str) -> Path:

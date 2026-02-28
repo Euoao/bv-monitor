@@ -344,7 +344,7 @@
         </div>
 
         <div class="status">
-            <span class="dot"></span> 每30秒自动刷新数据
+            <span class="dot"></span> 每<span id="intervalDisplay">{{ interval }}</span>秒自动刷新数据
         </div>
     </div>
 
@@ -540,7 +540,10 @@
 
         createCharts();
         fetchData();
-        setInterval(fetchData, 30000);
+
+        // 根据配置的间隔刷新数据
+        const REFRESH_MS = {{ interval }} * 1000;
+        setInterval(fetchData, REFRESH_MS);
     </script>
 </body>
 </html>

@@ -274,6 +274,64 @@
             line-height: 1.6;
         }
 
+        /* ── 设置区 ── */
+        .settings-area {
+            background: white;
+            border-radius: 16px;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .settings-area .label {
+            font-size: 0.9rem;
+            color: #555;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .settings-area .label .icon { font-size: 1.1rem; }
+        .settings-area .controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .interval-btn {
+            padding: 0.4rem 0.9rem;
+            border: 2px solid #e8ecf0;
+            border-radius: 8px;
+            background: #fafbfc;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .interval-btn:hover {
+            border-color: #00a1d6;
+            color: #00a1d6;
+            background: #f0f9fd;
+        }
+        .interval-btn.active {
+            border-color: #00a1d6;
+            background: linear-gradient(135deg, #00a1d6, #0078d4);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0,161,214,0.25);
+        }
+        .settings-saving {
+            font-size: 0.8rem;
+            color: #00a1d6;
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+        .settings-saving.show { opacity: 1; }
+
         /* ── 页脚 ── */
         .footer {
             text-align: center;
@@ -317,6 +375,22 @@
         </div>
 
         <div class="msg" id="msg"></div>
+
+        <div class="settings-area">
+            <div class="label">
+                <span class="icon">⏱️</span> 采集间隔
+            </div>
+            <div class="controls">
+                {% for sec in allowed_intervals %}
+                <button class="interval-btn {% if sec == interval %}active{% endif %}"
+                        data-seconds="{{ sec }}"
+                        onclick="setInterval_('{{ sec }}', this)">
+                    {% if sec < 60 %}{{ sec }}秒{% elif sec == 60 %}1分钟{% elif sec == 120 %}2分钟{% elif sec == 300 %}5分钟{% else %}{{ sec }}秒{% endif %}
+                </button>
+                {% endfor %}
+                <span class="settings-saving" id="savingTip">✓ 已保存</span>
+            </div>
+        </div>
 
         {% if monitors %}
         <div class="section-title">监控列表 · {{ monitors | length }} 个视频</div>
@@ -417,6 +491,33 @@
                 showMsg('已移除监控', true);
             } catch (e) {
                 showMsg('操作失败', false);
+            }
+        }
+
+        async function setInterval_(seconds, btnEl) {
+            // 避免重复点击当前激活项
+            if (btnEl.classList.contains('active')) return;
+
+            try {
+                const resp = await fetch('/api/config/interval', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interval: parseInt(seconds) })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    // 切换激活状态
+                    document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+                    btnEl.classList.add('active');
+                    // 显示保存提示
+                    const tip = document.getElementById('savingTip');
+                    tip.classList.add('show');
+                    setTimeout(() => tip.classList.remove('show'), 1500);
+                } else {
+                    showMsg('❌ ' + data.msg, false);
+                }
+            } catch (e) {
+                showMsg('❌ 设置失败', false);
             }
         }
 
