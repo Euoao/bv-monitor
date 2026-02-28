@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趋势图 - {{ info.title if info else bvid }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        .header {
+            background: linear-gradient(135deg, #00a1d6, #0078d4);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .header a {
+            color: white;
+            text-decoration: none;
+            font-size: 1.2rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.15);
+        }
+        .header a:hover { background: rgba(255,255,255,0.25); }
+        .header .title-area { flex: 1; }
+        .header h1 { font-size: 1.3rem; margin-bottom: 0.2rem; }
+        .header p { font-size: 0.85rem; opacity: 0.9; }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem; }
+
+        /* 当前数据卡片 */
+        .current-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .stat-card .label { font-size: 0.8rem; color: #888; margin-bottom: 0.3rem; }
+        .stat-card .value { font-size: 1.4rem; font-weight: 700; color: #00a1d6; }
+
+        /* 图表区 */
+        .chart-box {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .chart-box h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #555; }
+        .chart-box canvas { width: 100% !important; }
+
+        .status {
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        .status .dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            margin-right: 4px;
+            animation: blink 2s infinite;
+        }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/">← 返回</a>
+        <div class="title-area">
+            <h1>{{ info.title if info else bvid }}</h1>
+            <p>{% if info %}UP主: {{ info.owner_name }} · {% endif %}{{ bvid }}</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="current-stats" id="currentStats">
+            <div class="stat-card"><div class="label">播放量</div><div class="value" id="curView">-</div></div>
+            <div class="stat-card"><div class="label">点赞</div><div class="value" id="curLike">-</div></div>
+            <div class="stat-card"><div class="label">投币</div><div class="value" id="curCoin">-</div></div>
+            <div class="stat-card"><div class="label">收藏</div><div class="value" id="curFav">-</div></div>
+            <div class="stat-card"><div class="label">分享</div><div class="value" id="curShare">-</div></div>
+            <div class="stat-card"><div class="label">弹幕</div><div class="value" id="curDanmaku">-</div></div>
+        </div>
+
+        <div class="chart-box">
+            <h2>📈 播放量趋势</h2>
+            <canvas id="viewChart" height="80"></canvas>
+        </div>
+
+        <div class="chart-box">
+            <h2>👍 互动数据趋势（点赞 / 投币 / 收藏）</h2>
+            <canvas id="interactChart" height="80"></canvas>
+        </div>
+
+        <div class="status">
+            <span class="dot"></span> 每60秒自动刷新数据
+        </div>
+    </div>
+
+    <script>
+        const BVID = "{{ bvid }}";
+        let viewChart, interactChart;
+
+        function formatNum(n) {
+            if (n >= 10000) return (n / 10000).toFixed(1) + '万';
+            return n.toLocaleString();
+        }
+
+        function createCharts() {
+            const commonOpts = {
+                responsive: true,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                    x: { ticks: { maxRotation: 45, font: { size: 11 } } },
+                    y: { beginAtZero: false }
+                }
+            };
+
+            viewChart = new Chart(document.getElementById('viewChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [{
+                    label: '播放量',
+                    data: [],
+                    borderColor: '#00a1d6',
+                    backgroundColor: 'rgba(0,161,214,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3
+                }]},
+                options: commonOpts
+            });
+
+            interactChart = new Chart(document.getElementById('interactChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [
+                    { label: '点赞', data: [], borderColor: '#ff6b81', backgroundColor: 'rgba(255,107,129,0.1)', tension: 0.3, pointRadius: 3 },
+                    { label: '投币', data: [], borderColor: '#ffa502', backgroundColor: 'rgba(255,165,2,0.1)', tension: 0.3, pointRadius: 3 },
+                    { label: '收藏', data: [], borderColor: '#2ed573', backgroundColor: 'rgba(46,213,115,0.1)', tension: 0.3, pointRadius: 3 }
+                ]},
+                options: commonOpts
+            });
+        }
+
+        async function fetchData() {
+            try {
+                const resp = await fetch(`/api/stats/${BVID}`);
+                const data = await resp.json();
+                const stats = data.stats;
+                if (!stats || stats.length === 0) return;
+
+                // 更新当前数值
+                const latest = stats[stats.length - 1];
+                document.getElementById('curView').textContent = formatNum(latest.view);
+                document.getElementById('curLike').textContent = formatNum(latest.like);
+                document.getElementById('curCoin').textContent = formatNum(latest.coin);
+                document.getElementById('curFav').textContent = formatNum(latest.favorite);
+                document.getElementById('curShare').textContent = formatNum(latest.share);
+                document.getElementById('curDanmaku').textContent = formatNum(latest.danmaku);
+
+                // 更新图表
+                const labels = stats.map(s => s.timestamp.slice(11));  // 只取时间部分
+                viewChart.data.labels = labels;
+                viewChart.data.datasets[0].data = stats.map(s => s.view);
+                viewChart.update();
+
+                interactChart.data.labels = labels;
+                interactChart.data.datasets[0].data = stats.map(s => s.like);
+                interactChart.data.datasets[1].data = stats.map(s => s.coin);
+                interactChart.data.datasets[2].data = stats.map(s => s.favorite);
+                interactChart.update();
+            } catch (e) {
+                console.error('获取数据失败:', e);
+            }
+        }
+
+        // 初始化
+        createCharts();
+        fetchData();
+        // 每60秒自动刷新
+        setInterval(fetchData, 60000);
+    </script>
+</body>
+</html>
