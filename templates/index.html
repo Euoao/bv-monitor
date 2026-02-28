@@ -281,6 +281,7 @@
             box-shadow: 0 8px 30px rgba(0,0,0,0.1);
         }
         .monitor-card:hover::before { opacity: 1; }
+        .monitor-card.popup-active { z-index: 100; }
         .card-cover {
             width: 140px;
             height: 88px;
@@ -564,6 +565,7 @@
         function closeAllPopups() {
             document.getElementById('settingsPopup').classList.remove('open');
             document.querySelectorAll('.video-interval-popup.open').forEach(p => p.classList.remove('open'));
+            document.querySelectorAll('.monitor-card.popup-active').forEach(c => c.classList.remove('popup-active'));
         }
 
         /* ── 监控操作 ── */
@@ -658,7 +660,10 @@
             const popup = document.getElementById('vip-' + bvid);
             const wasOpen = popup.classList.contains('open');
             closeAllPopups();
-            if (!wasOpen) popup.classList.add('open');
+            if (!wasOpen) {
+                popup.classList.add('open');
+                popup.closest('.monitor-card').classList.add('popup-active');
+            }
         }
 
         async function setVideoInterval(bvid, seconds, btnEl) {
