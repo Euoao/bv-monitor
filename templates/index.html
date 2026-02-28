@@ -274,63 +274,84 @@
             line-height: 1.6;
         }
 
-        /* ── 设置区 ── */
-        .settings-area {
-            background: white;
-            border-radius: 16px;
-            padding: 1.2rem 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-            border: 1px solid rgba(0,0,0,0.04);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
+        /* ── 设置按钮 & 弹窗 ── */
+        .settings-wrap {
+            position: relative;
         }
-        .settings-area .label {
-            font-size: 0.9rem;
-            color: #555;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .settings-area .label .icon { font-size: 1.1rem; }
-        .settings-area .controls {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .interval-btn {
-            padding: 0.4rem 0.9rem;
+        .settings-trigger {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             border: 2px solid #e8ecf0;
-            border-radius: 8px;
             background: #fafbfc;
-            font-size: 0.82rem;
-            font-weight: 500;
-            color: #666;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
             transition: all 0.2s;
+            color: #888;
         }
-        .interval-btn:hover {
+        .settings-trigger:hover {
             border-color: #00a1d6;
             color: #00a1d6;
             background: #f0f9fd;
         }
+        .settings-popup {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.06);
+            padding: 0.6rem;
+            z-index: 100;
+            display: none;
+            min-width: 140px;
+            animation: popIn 0.15s ease-out;
+        }
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .settings-popup.open { display: block; }
+        .settings-popup .popup-title {
+            font-size: 0.72rem;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0.3rem 0.6rem 0.4rem;
+        }
+        .interval-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.45rem 0.6rem;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            font-size: 0.85rem;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+        }
+        .interval-btn:hover {
+            background: #f0f9fd;
+            color: #00a1d6;
+        }
         .interval-btn.active {
-            border-color: #00a1d6;
             background: linear-gradient(135deg, #00a1d6, #0078d4);
             color: white;
-            box-shadow: 0 2px 8px rgba(0,161,214,0.25);
         }
-        .settings-saving {
-            font-size: 0.8rem;
-            color: #00a1d6;
+        .interval-btn .check {
             opacity: 0;
-            transition: opacity 0.3s;
-            white-space: nowrap;
+            font-size: 0.75rem;
         }
-        .settings-saving.show { opacity: 1; }
+        .interval-btn.active .check { opacity: 1; }
 
         /* ── 页脚 ── */
         .footer {
@@ -372,25 +393,22 @@
                 <input type="text" id="bvInput" placeholder="输入 BV 号，例如 BV1xx411c7mD" />
             </div>
             <button id="addBtn" onclick="addMonitor()">开始监控</button>
+            <div class="settings-wrap">
+                <button class="settings-trigger" onclick="toggleSettings(event)" title="采集设置">⚙️</button>
+                <div class="settings-popup" id="settingsPopup">
+                    <div class="popup-title">采集间隔</div>
+                    {% for sec in allowed_intervals %}
+                    <button class="interval-btn {% if sec == interval %}active{% endif %}"
+                            onclick="setInterval_({{ sec }}, this)">
+                        {% if sec < 60 %}{{ sec }}秒{% elif sec == 60 %}1分钟{% elif sec == 120 %}2分钟{% elif sec == 300 %}5分钟{% else %}{{ sec }}秒{% endif %}
+                        <span class="check">✓</span>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
 
         <div class="msg" id="msg"></div>
-
-        <div class="settings-area">
-            <div class="label">
-                <span class="icon">⏱️</span> 采集间隔
-            </div>
-            <div class="controls">
-                {% for sec in allowed_intervals %}
-                <button class="interval-btn {% if sec == interval %}active{% endif %}"
-                        data-seconds="{{ sec }}"
-                        onclick="setInterval_('{{ sec }}', this)">
-                    {% if sec < 60 %}{{ sec }}秒{% elif sec == 60 %}1分钟{% elif sec == 120 %}2分钟{% elif sec == 300 %}5分钟{% else %}{{ sec }}秒{% endif %}
-                </button>
-                {% endfor %}
-                <span class="settings-saving" id="savingTip">✓ 已保存</span>
-            </div>
-        </div>
 
         {% if monitors %}
         <div class="section-title">监控列表 · {{ monitors | length }} 个视频</div>
@@ -494,25 +512,31 @@
             }
         }
 
-        async function setInterval_(seconds, btnEl) {
-            // 避免重复点击当前激活项
-            if (btnEl.classList.contains('active')) return;
+        function toggleSettings(e) {
+            e.stopPropagation();
+            document.getElementById('settingsPopup').classList.toggle('open');
+        }
+        // 点击外部关闭弹窗
+        document.addEventListener('click', e => {
+            const popup = document.getElementById('settingsPopup');
+            if (!e.target.closest('.settings-wrap')) popup.classList.remove('open');
+        });
 
+        async function setInterval_(seconds, btnEl) {
+            if (btnEl.classList.contains('active')) return;
             try {
                 const resp = await fetch('/api/config/interval', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ interval: parseInt(seconds) })
+                    body: JSON.stringify({ interval: seconds })
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    // 切换激活状态
                     document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
                     btnEl.classList.add('active');
-                    // 显示保存提示
-                    const tip = document.getElementById('savingTip');
-                    tip.classList.add('show');
-                    setTimeout(() => tip.classList.remove('show'), 1500);
+                    showMsg('✅ 采集间隔已设为 ' + data.interval + ' 秒', true);
+                    // 自动关闭弹窗
+                    document.getElementById('settingsPopup').classList.remove('open');
                 } else {
                     showMsg('❌ ' + data.msg, false);
                 }
