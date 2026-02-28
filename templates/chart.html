@@ -146,7 +146,7 @@
     <div class="header">
         <a href="/">← 返回</a>
         <div class="title-area">
-            <h1>{{ info.title if info else bvid }}</h1>
+            <h1><a href="https://www.bilibili.com/video/{{ bvid }}" target="_blank" style="color: white; text-decoration: none;" title="前往B站观看">{{ info.title if info else bvid }} ↗</a></h1>
             <p>{% if info %}UP主: {{ info.owner_name }} · {% endif %}{{ bvid }}</p>
         </div>
     </div>
