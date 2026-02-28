@@ -1,8 +1,14 @@
-"""数据存储模块 - 使用JSON文件持久化"""
+"""数据存储模块 - JSON + JSONL 持久化
+
+文件结构：
+  data/{bvid}.json        视频元信息 + 采集间隔（小文件，低频读写）
+  data/{bvid}_stats.jsonl  统计数据，每行一条 JSON（追加写入，高频）
+  data/_config.json        全局配置
+  data/_monitors.json      监控列表
+"""
 
 import json
 from pathlib import Path
-from datetime import datetime
 from threading import Lock
 from dataclasses import asdict
 
@@ -50,44 +56,88 @@ class DataStore:
             with open(cls._config_file(), "w", encoding="utf-8") as fh:
                 json.dump(cfg, fh, ensure_ascii=False, indent=2)
 
+    # ── 文件路径 ──
+
     @classmethod
-    def _get_file(cls, bvid: str) -> Path:
-        """获取存储文件路径"""
+    def _meta_file(cls, bvid: str) -> Path:
+        """视频元信息文件（info + interval）"""
         return DATA_DIR / f"{bvid}.json"
+
+    @classmethod
+    def _stats_file(cls, bvid: str) -> Path:
+        """视频统计数据文件（JSONL 格式）"""
+        return DATA_DIR / f"{bvid}_stats.jsonl"
+
+    # ── 旧格式迁移 ──
+
+    @classmethod
+    def _migrate_if_needed(cls, bvid: str):
+        """若旧 JSON 文件中包含 stats 数组，迁移到 JSONL 并清除"""
+        meta_path = cls._meta_file(bvid)
+        if not meta_path.exists():
+            return
+        with cls._lock:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            stats = data.pop("stats", None)
+            if stats is None:
+                return
+            # 将 stats 逐行写入 JSONL
+            stats_path = cls._stats_file(bvid)
+            with open(stats_path, "a", encoding="utf-8") as f:
+                for record in stats:
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            # 回写元信息文件（已移除 stats）
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+
+    # ── 视频信息 ──
 
     @classmethod
     def save_info(cls, info: VideoInfo):
         """保存视频基本信息"""
-        filepath = cls._get_file(info.bvid)
+        filepath = cls._meta_file(info.bvid)
         with cls._lock:
-            data = cls._load_raw(filepath)
+            data = cls._load_meta(filepath)
             data["info"] = asdict(info)
-            cls._save_raw(filepath, data)
-
-    @classmethod
-    def save_stat(cls, stat: VideoStat):
-        """追加一条统计数据"""
-        filepath = cls._get_file(stat.bvid)
-        with cls._lock:
-            data = cls._load_raw(filepath)
-            if "stats" not in data:
-                data["stats"] = []
-            data["stats"].append(asdict(stat))
-            cls._save_raw(filepath, data)
+            cls._save_meta(filepath, data)
 
     @classmethod
     def get_info(cls, bvid: str) -> dict | None:
         """获取视频基本信息"""
-        filepath = cls._get_file(bvid)
-        data = cls._load_raw(filepath)
+        filepath = cls._meta_file(bvid)
+        data = cls._load_meta(filepath)
         return data.get("info")
+
+    # ── 统计数据（JSONL 追加写入）──
+
+    @classmethod
+    def save_stat(cls, stat: VideoStat):
+        """追加一条统计数据（仅追加一行，不读取整个文件）"""
+        bvid = stat.bvid
+        cls._ensure_migrated(bvid)
+        stats_path = cls._stats_file(bvid)
+        line = json.dumps(asdict(stat), ensure_ascii=False) + "\n"
+        with cls._lock:
+            with open(stats_path, "a", encoding="utf-8") as f:
+                f.write(line)
 
     @classmethod
     def get_stats(cls, bvid: str) -> list[dict]:
         """获取所有统计数据"""
-        filepath = cls._get_file(bvid)
-        data = cls._load_raw(filepath)
-        return data.get("stats", [])
+        cls._ensure_migrated(bvid)
+        stats_path = cls._stats_file(bvid)
+        if not stats_path.exists():
+            return []
+        results = []
+        with open(stats_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    results.append(json.loads(line))
+        return results
+
+    # ── 监控列表 ──
 
     @classmethod
     def get_monitored_bvids(cls) -> list[str]:
@@ -123,21 +173,21 @@ class DataStore:
     @classmethod
     def get_video_interval(cls, bvid: str) -> int | None:
         """获取视频专属采集间隔，None 表示跟随全局默认"""
-        filepath = cls._get_file(bvid)
-        data = cls._load_raw(filepath)
+        filepath = cls._meta_file(bvid)
+        data = cls._load_meta(filepath)
         return data.get("interval")
 
     @classmethod
     def set_video_interval(cls, bvid: str, interval: int | None):
         """设置视频专属采集间隔，None 表示跟随全局默认"""
-        filepath = cls._get_file(bvid)
+        filepath = cls._meta_file(bvid)
         with cls._lock:
-            data = cls._load_raw(filepath)
+            data = cls._load_meta(filepath)
             if interval is None:
                 data.pop("interval", None)
             else:
                 data["interval"] = interval
-            cls._save_raw(filepath, data)
+            cls._save_meta(filepath, data)
 
     @classmethod
     def get_effective_interval(cls, bvid: str) -> int:
@@ -149,14 +199,24 @@ class DataStore:
 
     # ── 私有方法 ──
 
+    # 记录已迁移的 bvid，避免每次 save_stat 都检查文件
+    _migrated: set[str] = set()
+
     @classmethod
-    def _load_raw(cls, filepath: Path) -> dict:
+    def _ensure_migrated(cls, bvid: str):
+        """确保旧格式数据已迁移（每个 bvid 只检查一次）"""
+        if bvid not in cls._migrated:
+            cls._migrate_if_needed(bvid)
+            cls._migrated.add(bvid)
+
+    @classmethod
+    def _load_meta(cls, filepath: Path) -> dict:
         if not filepath.exists():
             return {}
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
 
     @classmethod
-    def _save_raw(cls, filepath: Path, data: dict):
+    def _save_meta(cls, filepath: Path, data: dict):
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
