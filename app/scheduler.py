@@ -1,4 +1,4 @@
-"""定时采集模块 - 定期抓取B站视频数据"""
+"""定时采集模块 - 每个视频独立采集任务"""
 
 import asyncio
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -8,30 +8,30 @@ from .store import DataStore
 
 scheduler = BackgroundScheduler()
 
-JOB_ID = "collect_job"
+
+def _job_id(bvid: str) -> str:
+    return f"collect_{bvid}"
 
 
-def _collect_task():
-    """定时采集任务（同步包装异步调用）"""
+def _collect_one_sync(bvid: str):
+    """同步包装异步采集"""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        loop.run_until_complete(_collect_all())
+        loop.run_until_complete(_collect_video(bvid))
     finally:
         loop.close()
 
 
-async def _collect_all():
-    """采集所有监控中的视频数据"""
-    bvids = DataStore.get_monitored_bvids()
-    for bvid in bvids:
-        stat = await fetch_video_stat(bvid)
-        if stat:
-            DataStore.save_stat(stat)
+async def _collect_video(bvid: str):
+    """采集单个视频数据"""
+    stat = await fetch_video_stat(bvid)
+    if stat:
+        DataStore.save_stat(stat)
 
 
 async def collect_one(bvid: str) -> bool:
-    """采集单个视频数据（供API调用）"""
+    """采集单个视频数据（供API调用，含首次视频信息获取）"""
     if not DataStore.get_info(bvid):
         info = await fetch_video_info(bvid)
         if not info:
@@ -45,26 +45,49 @@ async def collect_one(bvid: str) -> bool:
     return True
 
 
+def add_video_job(bvid: str):
+    """为视频添加定时采集任务"""
+    interval = DataStore.get_effective_interval(bvid)
+    jid = _job_id(bvid)
+    if scheduler.get_job(jid):
+        scheduler.remove_job(jid)
+    scheduler.add_job(
+        _collect_one_sync, "interval", seconds=interval,
+        id=jid, args=[bvid], replace_existing=True,
+    )
+
+
+def remove_video_job(bvid: str):
+    """移除视频的定时采集任务"""
+    jid = _job_id(bvid)
+    if scheduler.get_job(jid):
+        scheduler.remove_job(jid)
+
+
+def reschedule_video(bvid: str, seconds: int):
+    """修改单个视频的采集间隔"""
+    jid = _job_id(bvid)
+    if scheduler.get_job(jid):
+        scheduler.reschedule_job(jid, trigger="interval", seconds=seconds)
+    else:
+        add_video_job(bvid)
+
+
+def reschedule_default_videos(seconds: int):
+    """全局默认间隔变更时，更新所有跟随全局的视频"""
+    for bvid in DataStore.get_monitored_bvids():
+        if DataStore.get_video_interval(bvid) is None:
+            reschedule_video(bvid, seconds)
+
+
 def start_scheduler():
-    """启动定时采集，间隔从配置读取"""
-    interval = DataStore.get_config().get("interval", 30)
-    scheduler.add_job(_collect_task, "interval", seconds=interval, id=JOB_ID)
+    """启动调度器，为每个已监控视频创建独立采集任务"""
+    for bvid in DataStore.get_monitored_bvids():
+        add_video_job(bvid)
     scheduler.start()
-
-
-def reschedule(seconds: int):
-    """动态修改采集间隔（秒）"""
-    scheduler.reschedule_job(JOB_ID, trigger="interval", seconds=seconds)
-
-
-def get_current_interval() -> int:
-    """获取当前采集间隔"""
-    job = scheduler.get_job(JOB_ID)
-    if job and job.trigger:
-        return int(job.trigger.interval.total_seconds())
-    return DataStore.get_config().get("interval", 30)
 
 
 def shutdown_scheduler():
     """关闭调度器"""
-    scheduler.shutdown(wait=False)
+    if scheduler.running:
+        scheduler.shutdown(wait=False)

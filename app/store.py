@@ -118,6 +118,37 @@ class DataStore:
                 with open(DATA_DIR / "_monitors.json", "w", encoding="utf-8") as f:
                     json.dump(monitors, f)
 
+    # ── 单视频采集间隔 ──
+
+    @classmethod
+    def get_video_interval(cls, bvid: str) -> int | None:
+        """获取视频专属采集间隔，None 表示跟随全局默认"""
+        filepath = cls._get_file(bvid)
+        data = cls._load_raw(filepath)
+        return data.get("interval")
+
+    @classmethod
+    def set_video_interval(cls, bvid: str, interval: int | None):
+        """设置视频专属采集间隔，None 表示跟随全局默认"""
+        filepath = cls._get_file(bvid)
+        with cls._lock:
+            data = cls._load_raw(filepath)
+            if interval is None:
+                data.pop("interval", None)
+            else:
+                data["interval"] = interval
+            cls._save_raw(filepath, data)
+
+    @classmethod
+    def get_effective_interval(cls, bvid: str) -> int:
+        """获取视频的实际采集间隔（专属间隔优先，否则用全局默认）"""
+        vi = cls.get_video_interval(bvid)
+        if vi is not None:
+            return vi
+        return cls.get_config().get("interval", 30)
+
+    # ── 私有方法 ──
+
     @classmethod
     def _load_raw(cls, filepath: Path) -> dict:
         if not filepath.exists():

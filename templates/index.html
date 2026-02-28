@@ -164,6 +164,92 @@
             padding-left: 4px;
         }
 
+        /* ── 全局设置按钮 & 弹窗 ── */
+        .settings-wrap {
+            position: relative;
+        }
+        .settings-trigger {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 2px solid #e8ecf0;
+            background: #fafbfc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            color: #888;
+        }
+        .settings-trigger:hover {
+            border-color: #00a1d6;
+            color: #00a1d6;
+            background: #f0f9fd;
+        }
+        .settings-popup {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.06);
+            padding: 0.6rem;
+            z-index: 200;
+            display: none;
+            min-width: 140px;
+            animation: popIn 0.15s ease-out;
+        }
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .settings-popup.open { display: block; }
+
+        /* ── 通用弹窗标题 & 按钮 ── */
+        .popup-title {
+            font-size: 0.72rem;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0.3rem 0.6rem 0.4rem;
+        }
+        .interval-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.45rem 0.6rem;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            font-size: 0.85rem;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+        }
+        .interval-btn:hover {
+            background: #f0f9fd;
+            color: #00a1d6;
+        }
+        .interval-btn.active {
+            background: linear-gradient(135deg, #00a1d6, #0078d4);
+            color: white;
+        }
+        .interval-btn .check {
+            opacity: 0;
+            font-size: 0.75rem;
+        }
+        .interval-btn.active .check { opacity: 1; }
+        .interval-btn.follow-global {
+            border-bottom: 1px solid #f0f2f5;
+            margin-bottom: 0.3rem;
+            padding-bottom: 0.55rem;
+        }
+
         /* ── 监控列表 ── */
         .monitor-list { display: flex; flex-direction: column; gap: 0.8rem; }
         .monitor-card {
@@ -177,7 +263,6 @@
             transition: all 0.25s ease;
             border: 1px solid rgba(0,0,0,0.04);
             position: relative;
-            overflow: hidden;
         }
         .monitor-card::before {
             content: '';
@@ -222,9 +307,10 @@
             color: #1a1a2e;
             line-height: 1.4;
         }
-        .monitor-card .info p {
+        .monitor-card .info .meta {
             font-size: 0.82rem;
             color: #8c939a;
+            margin-bottom: 0.4rem;
         }
         .monitor-card .actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
         .btn-sm {
@@ -258,6 +344,51 @@
             background: #ffe0e0;
         }
 
+        /* ── 单视频间隔标签 & 弹窗 ── */
+        .card-interval-wrap {
+            position: relative;
+            display: inline-block;
+        }
+        .interval-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 8px;
+            border: 1px solid #e8ecf0;
+            border-radius: 6px;
+            background: #fafbfc;
+            font-size: 0.72rem;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.2s;
+            line-height: 1.4;
+        }
+        .interval-tag:hover {
+            border-color: #00a1d6;
+            color: #00a1d6;
+            background: #f0f9fd;
+        }
+        .interval-tag.custom {
+            border-color: #00a1d6;
+            color: #00a1d6;
+            background: #f0f9fd;
+        }
+        .video-interval-popup {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.06);
+            padding: 0.6rem;
+            z-index: 200;
+            display: none;
+            min-width: 160px;
+            animation: popIn 0.15s ease-out;
+        }
+        .video-interval-popup.open { display: block; }
+
         .empty {
             text-align: center;
             padding: 4rem 2rem;
@@ -273,85 +404,6 @@
             font-size: 1rem;
             line-height: 1.6;
         }
-
-        /* ── 设置按钮 & 弹窗 ── */
-        .settings-wrap {
-            position: relative;
-        }
-        .settings-trigger {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            border: 2px solid #e8ecf0;
-            background: #fafbfc;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            transition: all 0.2s;
-            color: #888;
-        }
-        .settings-trigger:hover {
-            border-color: #00a1d6;
-            color: #00a1d6;
-            background: #f0f9fd;
-        }
-        .settings-popup {
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-            border: 1px solid rgba(0,0,0,0.06);
-            padding: 0.6rem;
-            z-index: 100;
-            display: none;
-            min-width: 140px;
-            animation: popIn 0.15s ease-out;
-        }
-        @keyframes popIn {
-            from { opacity: 0; transform: translateY(-6px) scale(0.96); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .settings-popup.open { display: block; }
-        .settings-popup .popup-title {
-            font-size: 0.72rem;
-            color: #999;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 0.3rem 0.6rem 0.4rem;
-        }
-        .interval-btn {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding: 0.45rem 0.6rem;
-            border: none;
-            border-radius: 8px;
-            background: transparent;
-            font-size: 0.85rem;
-            color: #555;
-            cursor: pointer;
-            transition: all 0.15s;
-            text-align: left;
-        }
-        .interval-btn:hover {
-            background: #f0f9fd;
-            color: #00a1d6;
-        }
-        .interval-btn.active {
-            background: linear-gradient(135deg, #00a1d6, #0078d4);
-            color: white;
-        }
-        .interval-btn .check {
-            opacity: 0;
-            font-size: 0.75rem;
-        }
-        .interval-btn.active .check { opacity: 1; }
 
         /* ── 页脚 ── */
         .footer {
@@ -394,13 +446,13 @@
             </div>
             <button id="addBtn" onclick="addMonitor()">开始监控</button>
             <div class="settings-wrap">
-                <button class="settings-trigger" onclick="toggleSettings(event)" title="采集设置">⚙️</button>
-                <div class="settings-popup" id="settingsPopup">
-                    <div class="popup-title">采集间隔</div>
-                    {% for sec in allowed_intervals %}
-                    <button class="interval-btn {% if sec == interval %}active{% endif %}"
-                            onclick="setInterval_({{ sec }}, this)">
-                        {% if sec < 60 %}{{ sec }}秒{% elif sec == 60 %}1分钟{% elif sec == 120 %}2分钟{% elif sec == 300 %}5分钟{% else %}{{ sec }}秒{% endif %}
+                <button class="settings-trigger" onclick="toggleSettings(event)" title="全局采集设置">⚙️</button>
+                <div class="settings-popup" id="settingsPopup" onclick="event.stopPropagation()">
+                    <div class="popup-title">全局采集间隔</div>
+                    {% for opt in interval_options %}
+                    <button class="interval-btn {% if opt.value == interval %}active{% endif %}"
+                            onclick="setGlobalInterval({{ opt.value }}, this)">
+                        {{ opt.label }}
                         <span class="check">✓</span>
                     </button>
                     {% endfor %}
@@ -424,12 +476,56 @@
                     </div>
                     <div class="info">
                         <h3>{{ m.info.title }}</h3>
-                        <p>UP主: {{ m.info.owner_name }} · {{ m.bvid }}</p>
+                        <p class="meta">UP主: {{ m.info.owner_name }} · {{ m.bvid }}</p>
+                        <div class="card-interval-wrap">
+                            <button class="interval-tag {% if m.is_custom %}custom{% endif %}"
+                                    id="itag-{{ m.bvid }}"
+                                    onclick="toggleVideoInterval(event, '{{ m.bvid }}')">
+                                ⏱ {% if m.is_custom %}{{ m.effective_label }}{% else %}跟随全局{% endif %}
+                            </button>
+                            <div class="video-interval-popup" id="vip-{{ m.bvid }}" onclick="event.stopPropagation()">
+                                <div class="popup-title">采集间隔</div>
+                                <button class="interval-btn follow-global {% if not m.is_custom %}active{% endif %}"
+                                        onclick="setVideoInterval('{{ m.bvid }}', null, this)">
+                                    跟随全局（{{ interval_label }}）
+                                    <span class="check">✓</span>
+                                </button>
+                                {% for opt in interval_options %}
+                                <button class="interval-btn {% if m.is_custom and opt.value == m.effective_interval %}active{% endif %}"
+                                        onclick="setVideoInterval('{{ m.bvid }}', {{ opt.value }}, this)">
+                                    {{ opt.label }}
+                                    <span class="check">✓</span>
+                                </button>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                     {% else %}
                     <div class="info">
                         <h3>{{ m.bvid }}</h3>
-                        <p>视频信息加载中...</p>
+                        <p class="meta">视频信息加载中...</p>
+                        <div class="card-interval-wrap">
+                            <button class="interval-tag {% if m.is_custom %}custom{% endif %}"
+                                    id="itag-{{ m.bvid }}"
+                                    onclick="toggleVideoInterval(event, '{{ m.bvid }}')">
+                                ⏱ {% if m.is_custom %}{{ m.effective_label }}{% else %}跟随全局{% endif %}
+                            </button>
+                            <div class="video-interval-popup" id="vip-{{ m.bvid }}" onclick="event.stopPropagation()">
+                                <div class="popup-title">采集间隔</div>
+                                <button class="interval-btn follow-global {% if not m.is_custom %}active{% endif %}"
+                                        onclick="setVideoInterval('{{ m.bvid }}', null, this)">
+                                    跟随全局（{{ interval_label }}）
+                                    <span class="check">✓</span>
+                                </button>
+                                {% for opt in interval_options %}
+                                <button class="interval-btn {% if m.is_custom and opt.value == m.effective_interval %}active{% endif %}"
+                                        onclick="setVideoInterval('{{ m.bvid }}', {{ opt.value }}, this)">
+                                    {{ opt.label }}
+                                    <span class="check">✓</span>
+                                </button>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                     {% endif %}
                     <div class="actions">
@@ -452,6 +548,7 @@
     </div>
 
     <script>
+        /* ── 工具函数 ── */
         function showMsg(text, ok) {
             const el = document.getElementById('msg');
             el.textContent = text;
@@ -459,6 +556,17 @@
             setTimeout(() => { el.className = 'msg'; }, 3000);
         }
 
+        function formatInterval(sec) {
+            if (sec < 60) return sec + '秒';
+            return (sec / 60) + '分钟';
+        }
+
+        function closeAllPopups() {
+            document.getElementById('settingsPopup').classList.remove('open');
+            document.querySelectorAll('.video-interval-popup.open').forEach(p => p.classList.remove('open'));
+        }
+
+        /* ── 监控操作 ── */
         async function addMonitor() {
             const input = document.getElementById('bvInput');
             const btn = document.getElementById('addBtn');
@@ -496,11 +604,9 @@
                     card.style.transform = 'translateX(30px)';
                     setTimeout(() => {
                         card.remove();
-                        // 如果列表空了，显示空提示
                         const list = document.getElementById('monitorList');
                         if (!list.querySelector('.monitor-card')) {
                             list.innerHTML = '<div class="empty"><span class="empty-icon">🎬</span><div class="empty-text">还没有监控任何视频<br>在上方输入 BV 号开始吧</div></div>';
-                            // 隐藏列表标题
                             const title = document.querySelector('.section-title');
                             if (title) title.style.display = 'none';
                         }
@@ -512,17 +618,16 @@
             }
         }
 
+        /* ── 全局间隔设置 ── */
         function toggleSettings(e) {
             e.stopPropagation();
-            document.getElementById('settingsPopup').classList.toggle('open');
-        }
-        // 点击外部关闭弹窗
-        document.addEventListener('click', e => {
             const popup = document.getElementById('settingsPopup');
-            if (!e.target.closest('.settings-wrap')) popup.classList.remove('open');
-        });
+            const wasOpen = popup.classList.contains('open');
+            closeAllPopups();
+            if (!wasOpen) popup.classList.add('open');
+        }
 
-        async function setInterval_(seconds, btnEl) {
+        async function setGlobalInterval(seconds, btnEl) {
             if (btnEl.classList.contains('active')) return;
             try {
                 const resp = await fetch('/api/config/interval', {
@@ -532,11 +637,13 @@
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+                    // 更新全局弹窗按钮状态
+                    document.querySelectorAll('#settingsPopup .interval-btn').forEach(b => b.classList.remove('active'));
                     btnEl.classList.add('active');
-                    showMsg('✅ 采集间隔已设为 ' + data.interval + ' 秒', true);
-                    // 自动关闭弹窗
-                    document.getElementById('settingsPopup').classList.remove('open');
+                    closeAllPopups();
+                    showMsg('✅ ' + data.msg, true);
+                    // 刷新页面以更新所有"跟随全局"的标签
+                    setTimeout(() => location.reload(), 600);
                 } else {
                     showMsg('❌ ' + data.msg, false);
                 }
@@ -545,7 +652,51 @@
             }
         }
 
-        // 回车键提交
+        /* ── 单视频间隔设置 ── */
+        function toggleVideoInterval(e, bvid) {
+            e.stopPropagation();
+            const popup = document.getElementById('vip-' + bvid);
+            const wasOpen = popup.classList.contains('open');
+            closeAllPopups();
+            if (!wasOpen) popup.classList.add('open');
+        }
+
+        async function setVideoInterval(bvid, seconds, btnEl) {
+            if (btnEl.classList.contains('active')) return;
+            try {
+                const resp = await fetch(`/api/video/${bvid}/interval`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interval: seconds })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    // 更新标签文字和样式
+                    const tag = document.getElementById('itag-' + bvid);
+                    if (data.is_custom) {
+                        tag.textContent = '⏱ ' + data.effective_label;
+                        tag.classList.add('custom');
+                    } else {
+                        tag.textContent = '⏱ 跟随全局';
+                        tag.classList.remove('custom');
+                    }
+                    // 更新弹窗按钮状态
+                    const popup = document.getElementById('vip-' + bvid);
+                    popup.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+                    btnEl.classList.add('active');
+                    closeAllPopups();
+                    showMsg('✅ ' + data.msg, true);
+                } else {
+                    showMsg('❌ ' + data.msg, false);
+                }
+            } catch (e) {
+                showMsg('❌ 设置失败', false);
+            }
+        }
+
+        /* ── 全局事件 ── */
+        document.addEventListener('click', closeAllPopups);
+
         document.getElementById('bvInput').addEventListener('keydown', e => {
             if (e.key === 'Enter') addMonitor();
         });
