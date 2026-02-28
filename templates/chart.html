@@ -50,7 +50,45 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         .stat-card .label { font-size: 0.8rem; color: #888; margin-bottom: 0.3rem; }
-        .stat-card .value { font-size: 1.4rem; font-weight: 700; color: #00a1d6; }
+        .stat-card .value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #00a1d6;
+            position: relative;
+            cursor: default;
+        }
+        /* 悬浮提示框 */
+        .stat-card .value .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 400;
+            white-space: nowrap;
+            pointer-events: none;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 10;
+        }
+        .stat-card .value .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #333;
+        }
+        .stat-card .value:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
 
         /* 图表区 */
         .chart-box {
@@ -91,12 +129,12 @@
 
     <div class="container">
         <div class="current-stats" id="currentStats">
-            <div class="stat-card"><div class="label">播放量</div><div class="value" id="curView">-</div></div>
-            <div class="stat-card"><div class="label">点赞</div><div class="value" id="curLike">-</div></div>
-            <div class="stat-card"><div class="label">投币</div><div class="value" id="curCoin">-</div></div>
-            <div class="stat-card"><div class="label">收藏</div><div class="value" id="curFav">-</div></div>
-            <div class="stat-card"><div class="label">分享</div><div class="value" id="curShare">-</div></div>
-            <div class="stat-card"><div class="label">弹幕</div><div class="value" id="curDanmaku">-</div></div>
+            <div class="stat-card"><div class="label">播放量</div><div class="value" id="curView">-<span class="tooltip" id="tipView"></span></div></div>
+            <div class="stat-card"><div class="label">点赞</div><div class="value" id="curLike">-<span class="tooltip" id="tipLike"></span></div></div>
+            <div class="stat-card"><div class="label">投币</div><div class="value" id="curCoin">-<span class="tooltip" id="tipCoin"></span></div></div>
+            <div class="stat-card"><div class="label">收藏</div><div class="value" id="curFav">-<span class="tooltip" id="tipFav"></span></div></div>
+            <div class="stat-card"><div class="label">分享</div><div class="value" id="curShare">-<span class="tooltip" id="tipShare"></span></div></div>
+            <div class="stat-card"><div class="label">弹幕</div><div class="value" id="curDanmaku">-<span class="tooltip" id="tipDanmaku"></span></div></div>
         </div>
 
         <div class="chart-box">
@@ -121,6 +159,15 @@
         function formatNum(n) {
             if (n >= 10000) return (n / 10000).toFixed(1) + '万';
             return n.toLocaleString();
+        }
+
+        function updateStat(valueId, tipId, num) {
+            const el = document.getElementById(valueId);
+            const tip = document.getElementById(tipId);
+            // 设置缩写显示
+            el.childNodes[0].textContent = formatNum(num);
+            // 设置 tooltip 精确数值
+            tip.textContent = '精确值: ' + num.toLocaleString();
         }
 
         function createCharts() {
@@ -168,12 +215,12 @@
 
                 // 更新当前数值
                 const latest = stats[stats.length - 1];
-                document.getElementById('curView').textContent = formatNum(latest.view);
-                document.getElementById('curLike').textContent = formatNum(latest.like);
-                document.getElementById('curCoin').textContent = formatNum(latest.coin);
-                document.getElementById('curFav').textContent = formatNum(latest.favorite);
-                document.getElementById('curShare').textContent = formatNum(latest.share);
-                document.getElementById('curDanmaku').textContent = formatNum(latest.danmaku);
+                updateStat('curView', 'tipView', latest.view);
+                updateStat('curLike', 'tipLike', latest.like);
+                updateStat('curCoin', 'tipCoin', latest.coin);
+                updateStat('curFav', 'tipFav', latest.favorite);
+                updateStat('curShare', 'tipShare', latest.share);
+                updateStat('curDanmaku', 'tipDanmaku', latest.danmaku);
 
                 // 更新图表
                 const labels = stats.map(s => s.timestamp.slice(11));  // 只取时间部分
