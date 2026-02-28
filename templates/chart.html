@@ -205,11 +205,24 @@
 
         function formatAxis(value) {
             if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(2) + '亿';
-            if (Math.abs(value) >= 10000) return (value / 10000).toFixed(1) + '万';
+            if (Math.abs(value) >= 10000) return (value / 10000).toFixed(2) + '万';
             return value.toLocaleString();
         }
 
-        function makeOpts(yGrace) {
+        /** 计算 Y 轴紧贴数据的 min/max，上下留 20% 余量 */
+        function calcBounds(arrays) {
+            const all = arrays.flat();
+            if (all.length === 0) return { min: 0, max: 100 };
+            let lo = Math.min(...all);
+            let hi = Math.max(...all);
+            let range = hi - lo;
+            // 如果数据几乎不变，取值的 0.1% 作为最小范围
+            if (range < 1) range = Math.max(hi * 0.001, 1);
+            const pad = range * 0.2;
+            return { min: Math.floor(lo - pad), max: Math.ceil(hi + pad) };
+        }
+
+        function makeOpts() {
             return {
                 responsive: true,
                 interaction: { intersect: false, mode: 'index' },
@@ -235,11 +248,7 @@
                 scales: {
                     x: { ticks: { maxRotation: 45, font: { size: 11 } } },
                     y: {
-                        beginAtZero: false,
-                        grace: yGrace,
-                        ticks: {
-                            callback: formatAxis
-                        }
+                        ticks: { callback: formatAxis }
                     }
                 }
             };
@@ -257,7 +266,7 @@
                     tension: 0.3,
                     pointRadius: 3
                 }]},
-                options: makeOpts('5%')
+                options: makeOpts()
             });
 
             interactChart = new Chart(document.getElementById('interactChart'), {
@@ -267,7 +276,7 @@
                     { label: '投币', data: [], borderColor: '#ffa502', backgroundColor: 'rgba(255,165,2,0.1)', tension: 0.3, pointRadius: 3 },
                     { label: '收藏', data: [], borderColor: '#2ed573', backgroundColor: 'rgba(46,213,115,0.1)', tension: 0.3, pointRadius: 3 }
                 ]},
-                options: makeOpts('5%')
+                options: makeOpts()
             });
         }
 
@@ -289,14 +298,25 @@
 
                 // 更新图表
                 const labels = stats.map(s => s.timestamp.slice(11));  // 只取时间部分
+
+                const views = stats.map(s => s.view);
                 viewChart.data.labels = labels;
-                viewChart.data.datasets[0].data = stats.map(s => s.view);
+                viewChart.data.datasets[0].data = views;
+                const vBounds = calcBounds([views]);
+                viewChart.options.scales.y.min = vBounds.min;
+                viewChart.options.scales.y.max = vBounds.max;
                 viewChart.update();
 
+                const likes = stats.map(s => s.like);
+                const coins = stats.map(s => s.coin);
+                const favs  = stats.map(s => s.favorite);
                 interactChart.data.labels = labels;
-                interactChart.data.datasets[0].data = stats.map(s => s.like);
-                interactChart.data.datasets[1].data = stats.map(s => s.coin);
-                interactChart.data.datasets[2].data = stats.map(s => s.favorite);
+                interactChart.data.datasets[0].data = likes;
+                interactChart.data.datasets[1].data = coins;
+                interactChart.data.datasets[2].data = favs;
+                const iBounds = calcBounds([likes, coins, favs]);
+                interactChart.options.scales.y.min = iBounds.min;
+                interactChart.options.scales.y.max = iBounds.max;
                 interactChart.update();
             } catch (e) {
                 console.error('获取数据失败:', e);
