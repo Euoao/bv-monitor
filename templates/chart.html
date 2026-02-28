@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>趋势图 - {{ info.title if info else bvid }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -389,6 +391,8 @@
         const BVID = "{{ bvid }}";
         const charts = {};
 
+        /* ── 工具函数 ── */
+
         function formatNum(n) {
             if (n >= 10000) return (n / 10000).toFixed(1) + '万';
             return n.toLocaleString();
@@ -407,17 +411,22 @@
             return value.toLocaleString();
         }
 
+        /** 将后端时间戳 "YYYY-MM-DD HH:mm:ss" 转为 Date 对象 */
+        function parseTS(ts) {
+            return new Date(ts.replace(' ', 'T'));
+        }
+
+        /* ── Y 轴自适应 ── */
+
         function calcBounds(data) {
             if (!data || data.length === 0) return { min: 0, max: 100 };
             const lo = Math.min(...data);
             const hi = Math.max(...data);
             let range = hi - lo;
             if (range === 0) {
-                // 数据完全相同时，用极小浮动
                 const nudge = Math.max(hi * 0.00005, 1);
                 return { min: Math.max(0, lo - nudge), max: hi + nudge };
             }
-            // 极小 padding，让数据几乎填满整个图表高度
             const pad = range * 0.03;
             return {
                 min: Math.max(0, lo - pad),
@@ -425,16 +434,20 @@
             };
         }
 
+        /** 根据当前可见的 X 轴范围，自适应 Y 轴 */
         function autoFitY(chart) {
             const xScale = chart.scales.x;
-            const minIdx = Math.max(0, Math.floor(xScale.min));
-            const maxIdx = Math.min(chart.data.labels.length - 1, Math.ceil(xScale.max));
+            const xMin = xScale.min;   // 时间轴 min/max 是毫秒时间戳
+            const xMax = xScale.max;
 
             let visible = [];
             chart.data.datasets.forEach(ds => {
-                for (let i = minIdx; i <= maxIdx; i++) {
-                    if (ds.data[i] != null) visible.push(ds.data[i]);
-                }
+                ds.data.forEach(pt => {
+                    const t = pt.x instanceof Date ? pt.x.getTime() : new Date(pt.x).getTime();
+                    if (t >= xMin && t <= xMax) {
+                        visible.push(pt.y);
+                    }
+                });
             });
 
             if (visible.length === 0) return;
@@ -444,12 +457,14 @@
             chart.update('none');
         }
 
+        /* ── 图表配置 ── */
+
         function makeOpts(label) {
             return {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: { duration: 400 },
-                interaction: { intersect: false, mode: 'index' },
+                interaction: { intersect: false, mode: 'nearest', axis: 'x' },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -462,6 +477,11 @@
                         cornerRadius: 8,
                         displayColors: false,
                         callbacks: {
+                            title: ctx => {
+                                if (!ctx.length) return '';
+                                const d = new Date(ctx[0].parsed.x);
+                                return d.toLocaleString('zh-CN');
+                            },
                             label: ctx => (label || ctx.dataset.label) + ': ' + ctx.parsed.y.toLocaleString()
                         }
                     },
@@ -476,13 +496,23 @@
                             mode: 'x',
                             onZoomComplete: ({chart}) => setTimeout(() => autoFitY(chart), 50)
                         },
-                        limits: { x: { minRange: 2 } }
+                        limits: { x: { minRange: 60 * 1000 } }  // 最少显示 1 分钟
                     }
                 },
                 scales: {
                     x: {
+                        type: 'time',
+                        time: {
+                            tooltipFormat: 'yyyy-MM-dd HH:mm:ss',
+                            displayFormats: {
+                                second: 'HH:mm:ss',
+                                minute: 'HH:mm',
+                                hour: 'HH:mm',
+                                day: 'MM/dd HH:mm'
+                            }
+                        },
                         grid: { color: 'rgba(0,0,0,0.04)' },
-                        ticks: { maxRotation: 45, font: { size: 11 }, color: '#999' }
+                        ticks: { maxRotation: 45, font: { size: 11 }, color: '#999', autoSkip: true, maxTicksLimit: 15 }
                     },
                     y: {
                         grid: { color: 'rgba(0,0,0,0.04)' },
@@ -494,39 +524,37 @@
             };
         }
 
+        /* ── 图表操作 ── */
+
         function resetChart(chart) {
-            // 1. 暂时移除 onZoomComplete 回调，避免 resetZoom 内部再触发 autoFitY
             const zoomOpts = chart.options.plugins.zoom.zoom;
             const savedCb = zoomOpts.onZoomComplete;
             zoomOpts.onZoomComplete = null;
 
-            // 2. 用 'none' 模式重置，跳过动画，确保同步完成
             chart.resetZoom('none');
 
-            // 3. 恢复回调
             zoomOpts.onZoomComplete = savedCb;
 
-            // 4. 用全量数据重新计算 Y 轴
-            const allData = chart.data.datasets.flatMap(ds => ds.data);
-            const bounds = calcBounds(allData);
+            const allY = chart.data.datasets.flatMap(ds => ds.data.map(pt => pt.y));
+            const bounds = calcBounds(allY);
             chart.options.scales.y.min = bounds.min;
             chart.options.scales.y.max = bounds.max;
             chart.update('none');
         }
 
-        function feedChart(chart, labels, data) {
-            const bounds = calcBounds(data);
+        function feedChart(chart, xyData) {
+            const yValues = xyData.map(pt => pt.y);
+            const bounds = calcBounds(yValues);
             chart.options.scales.y.min = bounds.min;
             chart.options.scales.y.max = bounds.max;
-            chart.data.labels = labels;
-            chart.data.datasets[0].data = data;
+            chart.data.datasets[0].data = xyData;
             chart.update();
         }
 
         function makeChart(canvasId, label, color) {
             return new Chart(document.getElementById(canvasId), {
                 type: 'line',
-                data: { labels: [], datasets: [{
+                data: { datasets: [{
                     label: label,
                     data: [],
                     borderColor: color,
@@ -551,6 +579,8 @@
             charts.fav  = makeChart('favChart',  '收藏', '#2ed573');
         }
 
+        /* ── 数据获取 ── */
+
         async function fetchData() {
             try {
                 const resp = await fetch(`/api/stats/${BVID}`);
@@ -566,12 +596,10 @@
                 updateStat('curShare', 'tipShare', latest.share);
                 updateStat('curDanmaku', 'tipDanmaku', latest.danmaku);
 
-                const labels = stats.map(s => s.timestamp.slice(11));
-
-                feedChart(charts.view, labels, stats.map(s => s.view));
-                feedChart(charts.like, labels, stats.map(s => s.like));
-                feedChart(charts.coin, labels, stats.map(s => s.coin));
-                feedChart(charts.fav,  labels, stats.map(s => s.favorite));
+                feedChart(charts.view, stats.map(s => ({ x: parseTS(s.timestamp), y: s.view })));
+                feedChart(charts.like, stats.map(s => ({ x: parseTS(s.timestamp), y: s.like })));
+                feedChart(charts.coin, stats.map(s => ({ x: parseTS(s.timestamp), y: s.coin })));
+                feedChart(charts.fav,  stats.map(s => ({ x: parseTS(s.timestamp), y: s.favorite })));
             } catch (e) {
                 console.error('获取数据失败:', e);
             }
