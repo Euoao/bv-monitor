@@ -1,0 +1,16 @@
+[project]
+name = "bv-monitor"
+version = "0.1.0"
+description = "B站视频数据实时监控工具 - 监控播放量、点赞、投币、收藏趋势"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "httpx>=0.28.0",
+    "apscheduler>=3.10.0",
+    "jinja2>=3.1.0",
+]
+
+[project.scripts]
+bv-monitor = "main:start"
