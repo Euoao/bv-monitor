@@ -16,6 +16,22 @@ from .store import DataStore
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+
+def _format_num(value) -> str:
+    """将数字格式化为可读文本（万/亿）"""
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if n >= 100_000_000:
+        return f"{n / 100_000_000:.1f}亿"
+    if n >= 10_000:
+        return f"{n / 10_000:.1f}万"
+    return f"{n:,}"
+
+
+templates.env.filters["format_num"] = _format_num
+
 router = APIRouter()
 
 # 允许的采集间隔选项（秒）
@@ -41,9 +57,11 @@ async def index(request: Request):
         info = DataStore.get_info(bvid)
         video_interval = DataStore.get_video_interval(bvid)
         effective = DataStore.get_effective_interval(bvid)
+        latest_stat = DataStore.get_latest_stat(bvid)
         monitors.append({
             "bvid": bvid,
             "info": info,
+            "latest_stat": latest_stat,
             "effective_interval": effective,
             "effective_label": _fmt_interval(effective),
             "is_custom": video_interval is not None,

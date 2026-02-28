@@ -369,6 +369,28 @@
             color: #00a1d6;
             background: #f0f9fd;
         }
+
+        /* ── 视频统计栏 ── */
+        .card-stats {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.4rem;
+        }
+        .stat-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.78rem;
+            color: #666;
+            background: #f5f7fa;
+            padding: 2px 8px;
+            border-radius: 5px;
+            line-height: 1.5;
+        }
+        .stat-item .stat-icon {
+            font-size: 0.72rem;
+        }
         .interval-tag.custom {
             border-color: #00a1d6;
             color: #00a1d6;
@@ -478,6 +500,16 @@
                     <div class="info">
                         <h3>{{ m.info.title }}</h3>
                         <p class="meta">UP主: {{ m.info.owner_name }} · {{ m.bvid }}</p>
+                        {% if m.latest_stat %}
+                        <div class="card-stats">
+                            <span class="stat-item"><span class="stat-icon">▶</span> {{ m.latest_stat.view | format_num }}</span>
+                            <span class="stat-item"><span class="stat-icon">👍</span> {{ m.latest_stat.like | format_num }}</span>
+                            <span class="stat-item"><span class="stat-icon">💰</span> {{ m.latest_stat.coin | format_num }}</span>
+                            <span class="stat-item"><span class="stat-icon">⭐</span> {{ m.latest_stat.favorite | format_num }}</span>
+                            <span class="stat-item"><span class="stat-icon">🔄</span> {{ m.latest_stat.share | format_num }}</span>
+                            <span class="stat-item"><span class="stat-icon">💬</span> {{ m.latest_stat.danmaku | format_num }}</span>
+                        </div>
+                        {% endif %}
                         <div class="card-interval-wrap">
                             <button class="interval-tag {% if m.is_custom %}custom{% endif %}"
                                     id="itag-{{ m.bvid }}"

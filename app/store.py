@@ -137,6 +137,32 @@ class DataStore:
                     results.append(json.loads(line))
         return results
 
+    @classmethod
+    def get_latest_stat(cls, bvid: str) -> dict | None:
+        """高效获取最新一条统计数据（从文件末尾读取）"""
+        cls._ensure_migrated(bvid)
+        stats_path = cls._stats_file(bvid)
+        if not stats_path.exists():
+            return None
+        # 从末尾往回读，找到最后一个非空行
+        try:
+            with open(stats_path, "rb") as f:
+                f.seek(0, 2)  # 移到文件末尾
+                size = f.tell()
+                if size == 0:
+                    return None
+                # 从末尾向前读取，最多 4KB 足够一行
+                chunk_size = min(4096, size)
+                f.seek(size - chunk_size)
+                chunk = f.read().decode("utf-8")
+                lines = chunk.strip().rsplit("\n", 1)
+                last_line = lines[-1].strip()
+                if last_line:
+                    return json.loads(last_line)
+        except (json.JSONDecodeError, OSError):
+            pass
+        return None
+
     # ── 监控列表 ──
 
     @classmethod
