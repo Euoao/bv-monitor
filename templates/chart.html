@@ -196,7 +196,40 @@
             margin: 0;
             font-weight: 600;
         }
-        .chart-box canvas { width: 100% !important; }
+        .chart-box canvas { width: 100% !important; display: block; }
+        .chart-wrap {
+            position: relative;
+            height: 220px;
+            min-height: 100px;
+            max-height: 600px;
+            resize: vertical;
+            overflow: hidden;
+        }
+        .chart-wrap canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        /* 自定义拖拽手柄样式 */
+        .chart-wrap::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 36px;
+            height: 4px;
+            background: #d0d5dd;
+            border-radius: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .chart-wrap:hover::after {
+            opacity: 1;
+        }
         .reset-btn {
             padding: 5px 14px;
             font-size: 0.75rem;
@@ -312,8 +345,8 @@
                 <h2>📈 播放量趋势</h2>
                 <button class="reset-btn" onclick="resetChart(charts.view)">重置视图</button>
             </div>
-            <canvas id="viewChart" height="140"></canvas>
-            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
+            <div class="chart-wrap"><canvas id="viewChart"></canvas></div>
+            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部 · 底部边缘可拖拽调节高度</div>
         </div>
 
         <div class="chart-box">
@@ -321,8 +354,8 @@
                 <h2>👍 点赞趋势</h2>
                 <button class="reset-btn" onclick="resetChart(charts.like)">重置视图</button>
             </div>
-            <canvas id="likeChart" height="140"></canvas>
-            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
+            <div class="chart-wrap"><canvas id="likeChart"></canvas></div>
+            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部 · 底部边缘可拖拽调节高度</div>
         </div>
 
         <div class="chart-box">
@@ -330,8 +363,8 @@
                 <h2>🪙 投币趋势</h2>
                 <button class="reset-btn" onclick="resetChart(charts.coin)">重置视图</button>
             </div>
-            <canvas id="coinChart" height="140"></canvas>
-            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
+            <div class="chart-wrap"><canvas id="coinChart"></canvas></div>
+            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部 · 底部边缘可拖拽调节高度</div>
         </div>
 
         <div class="chart-box">
@@ -339,8 +372,8 @@
                 <h2>⭐ 收藏趋势</h2>
                 <button class="reset-btn" onclick="resetChart(charts.fav)">重置视图</button>
             </div>
-            <canvas id="favChart" height="140"></canvas>
-            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
+            <div class="chart-wrap"><canvas id="favChart"></canvas></div>
+            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部 · 底部边缘可拖拽调节高度</div>
         </div>
 
         <div class="status">
@@ -414,6 +447,7 @@
         function makeOpts(label) {
             return {
                 responsive: true,
+                maintainAspectRatio: false,
                 animation: { duration: 400 },
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
