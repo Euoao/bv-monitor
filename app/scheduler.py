@@ -46,8 +46,8 @@ async def collect_one(bvid: str) -> bool:
 
 
 def start_scheduler():
-    """启动定时采集，每60秒采集一次"""
-    scheduler.add_job(_collect_task, "interval", seconds=60, id="collect_job")
+    """启动定时采集，每30秒采集一次"""
+    scheduler.add_job(_collect_task, "interval", seconds=30, id="collect_job")
     scheduler.start()
 
 
