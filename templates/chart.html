@@ -355,6 +355,7 @@
     <script>
         const BVID = "{{ bvid }}";
         const charts = {};
+        let _resetting = false; // 防止 resetZoom 触发 onZoomComplete 导致 Y 轴错乱
 
         function formatNum(n) {
             if (n >= 10000) return (n / 10000).toFixed(1) + '万';
@@ -388,6 +389,7 @@
         }
 
         function autoFitY(chart) {
+            if (_resetting) return; // 重置期间跳过，由 resetChart 统一处理
             const xScale = chart.scales.x;
             const minIdx = Math.max(0, Math.floor(xScale.min));
             const maxIdx = Math.min(chart.data.labels.length - 1, Math.ceil(xScale.max));
@@ -456,7 +458,10 @@
         }
 
         function resetChart(chart) {
+            _resetting = true;
             chart.resetZoom();
+            _resetting = false;
+            // 重置后用全量数据重新计算 Y 轴
             const allData = chart.data.datasets.flatMap(ds => ds.data);
             const bounds = calcBounds(allData);
             chart.options.scales.y.min = bounds.min;
