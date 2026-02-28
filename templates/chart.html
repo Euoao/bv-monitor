@@ -164,19 +164,37 @@
         <div class="chart-box">
             <div class="chart-header">
                 <h2>📈 播放量趋势</h2>
-                <button class="reset-btn" onclick="resetChart(viewChart)">重置视图</button>
+                <button class="reset-btn" onclick="resetChart(charts.view)">重置视图</button>
             </div>
-            <canvas id="viewChart" height="80"></canvas>
-            <div class="zoom-hint">在图表上拖拽选择时间区间查看趋势</div>
+            <canvas id="viewChart" height="70"></canvas>
+            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
         </div>
 
         <div class="chart-box">
             <div class="chart-header">
-                <h2>👍 互动数据趋势（点赞 / 投币 / 收藏）</h2>
-                <button class="reset-btn" onclick="resetChart(interactChart)">重置视图</button>
+                <h2>👍 点赞趋势</h2>
+                <button class="reset-btn" onclick="resetChart(charts.like)">重置视图</button>
             </div>
-            <canvas id="interactChart" height="80"></canvas>
-            <div class="zoom-hint">在图表上拖拽选择时间区间查看趋势</div>
+            <canvas id="likeChart" height="70"></canvas>
+            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
+        </div>
+
+        <div class="chart-box">
+            <div class="chart-header">
+                <h2>🪙 投币趋势</h2>
+                <button class="reset-btn" onclick="resetChart(charts.coin)">重置视图</button>
+            </div>
+            <canvas id="coinChart" height="70"></canvas>
+            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
+        </div>
+
+        <div class="chart-box">
+            <div class="chart-header">
+                <h2>⭐ 收藏趋势</h2>
+                <button class="reset-btn" onclick="resetChart(charts.fav)">重置视图</button>
+            </div>
+            <canvas id="favChart" height="70"></canvas>
+            <div class="zoom-hint">拖拽选择时间区间 · 点击重置恢复全部</div>
         </div>
 
         <div class="status">
@@ -186,7 +204,7 @@
 
     <script>
         const BVID = "{{ bvid }}";
-        let viewChart, interactChart;
+        const charts = {};
 
         function formatNum(n) {
             if (n >= 10000) return (n / 10000).toFixed(1) + '万';
@@ -196,9 +214,7 @@
         function updateStat(valueId, tipId, num) {
             const el = document.getElementById(valueId);
             const tip = document.getElementById(tipId);
-            // 设置缩写显示
             el.childNodes[0].textContent = formatNum(num);
-            // 设置 tooltip 精确数值
             tip.textContent = num.toLocaleString();
         }
 
@@ -209,47 +225,55 @@
         }
 
         /**
-         * 根据可见区间内的数据自动适配 Y 轴范围
-         * 保证趋势填满图表区域，且不会出现负数
+         * 从数据数组直接计算 Y 轴 min/max（不依赖 chart.scales）
+         * 保证曲线填满图表高度，且不出现负数
+         */
+        function calcBounds(data) {
+            if (!data || data.length === 0) return { min: 0, max: 100 };
+            const lo = Math.min(...data);
+            const hi = Math.max(...data);
+            let range = hi - lo;
+            // 如果值几乎不变，取值的 0.5% 作为展示范围
+            if (range < 1) range = Math.max(hi * 0.005, 1);
+            const pad = range * 0.15;
+            return {
+                min: Math.max(0, lo - pad),
+                max: hi + pad
+            };
+        }
+
+        /**
+         * 拖拽选区后，根据可见区间内数据自动适配 Y 轴
          */
         function autoFitY(chart) {
             const xScale = chart.scales.x;
             const minIdx = Math.max(0, Math.floor(xScale.min));
             const maxIdx = Math.min(chart.data.labels.length - 1, Math.ceil(xScale.max));
 
-            let allVals = [];
+            let visible = [];
             chart.data.datasets.forEach(ds => {
                 for (let i = minIdx; i <= maxIdx; i++) {
-                    if (ds.data[i] !== undefined && ds.data[i] !== null) {
-                        allVals.push(ds.data[i]);
-                    }
+                    if (ds.data[i] != null) visible.push(ds.data[i]);
                 }
             });
 
-            if (allVals.length === 0) return;
-
-            let lo = Math.min(...allVals);
-            let hi = Math.max(...allVals);
-            let range = hi - lo;
-            // 数据几乎不变时，取值的 0.5% 作为最小展示范围
-            if (range < 1) range = Math.max(hi * 0.005, 1);
-            const pad = range * 0.15;
-
-            chart.options.scales.y.min = Math.max(0, Math.floor(lo - pad));
-            chart.options.scales.y.max = Math.ceil(hi + pad);
-            chart.update('none');  // 'none' 跳过动画，避免闪烁
+            if (visible.length === 0) return;
+            const bounds = calcBounds(visible);
+            chart.options.scales.y.min = bounds.min;
+            chart.options.scales.y.max = bounds.max;
+            chart.update('none');
         }
 
-        function makeOpts() {
+        function makeOpts(label) {
             return {
                 responsive: true,
                 animation: { duration: 300 },
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
-                    legend: { position: 'bottom' },
+                    legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toLocaleString()
+                            label: ctx => (label || ctx.dataset.label) + ': ' + ctx.parsed.y.toLocaleString()
                         }
                     },
                     zoom: {
@@ -263,16 +287,15 @@
                             mode: 'x',
                             onZoomComplete: ({chart}) => autoFitY(chart)
                         },
-                        limits: {
-                            x: { minRange: 2 }
-                        }
+                        limits: { x: { minRange: 2 } }
                     }
                 },
                 scales: {
                     x: { ticks: { maxRotation: 45, font: { size: 11 } } },
                     y: {
                         ticks: { callback: formatAxis },
-                        min: 0
+                        min: 0,
+                        max: 100
                     }
                 }
             };
@@ -280,33 +303,49 @@
 
         function resetChart(chart) {
             chart.resetZoom();
-            autoFitY(chart);
+            // 重算全量数据的 Y 轴范围
+            const allData = chart.data.datasets.flatMap(ds => ds.data);
+            const bounds = calcBounds(allData);
+            chart.options.scales.y.min = bounds.min;
+            chart.options.scales.y.max = bounds.max;
+            chart.update('none');
+        }
+
+        /** 给单个图表灌入数据并自适应 Y 轴 */
+        function feedChart(chart, labels, data) {
+            // 先计算好 Y 轴范围
+            const bounds = calcBounds(data);
+            chart.options.scales.y.min = bounds.min;
+            chart.options.scales.y.max = bounds.max;
+            // 再灌入数据并渲染
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = data;
+            chart.update();
+        }
+
+        function makeChart(canvasId, label, color) {
+            const rgb = color;
+            return new Chart(document.getElementById(canvasId), {
+                type: 'line',
+                data: { labels: [], datasets: [{
+                    label: label,
+                    data: [],
+                    borderColor: color,
+                    backgroundColor: color + '18',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    borderWidth: 2
+                }]},
+                options: makeOpts(label)
+            });
         }
 
         function createCharts() {
-            viewChart = new Chart(document.getElementById('viewChart'), {
-                type: 'line',
-                data: { labels: [], datasets: [{
-                    label: '播放量',
-                    data: [],
-                    borderColor: '#00a1d6',
-                    backgroundColor: 'rgba(0,161,214,0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 3
-                }]},
-                options: makeOpts()
-            });
-
-            interactChart = new Chart(document.getElementById('interactChart'), {
-                type: 'line',
-                data: { labels: [], datasets: [
-                    { label: '点赞', data: [], borderColor: '#ff6b81', backgroundColor: 'rgba(255,107,129,0.1)', tension: 0.3, pointRadius: 3 },
-                    { label: '投币', data: [], borderColor: '#ffa502', backgroundColor: 'rgba(255,165,2,0.1)', tension: 0.3, pointRadius: 3 },
-                    { label: '收藏', data: [], borderColor: '#2ed573', backgroundColor: 'rgba(46,213,115,0.1)', tension: 0.3, pointRadius: 3 }
-                ]},
-                options: makeOpts()
-            });
+            charts.view = makeChart('viewChart', '播放量', '#00a1d6');
+            charts.like = makeChart('likeChart', '点赞', '#ff6b81');
+            charts.coin = makeChart('coinChart', '投币', '#ffa502');
+            charts.fav  = makeChart('favChart', '收藏', '#2ed573');
         }
 
         async function fetchData() {
@@ -316,7 +355,7 @@
                 const stats = data.stats;
                 if (!stats || stats.length === 0) return;
 
-                // 更新当前数值
+                // 更新卡片数值
                 const latest = stats[stats.length - 1];
                 updateStat('curView', 'tipView', latest.view);
                 updateStat('curLike', 'tipLike', latest.like);
@@ -325,29 +364,20 @@
                 updateStat('curShare', 'tipShare', latest.share);
                 updateStat('curDanmaku', 'tipDanmaku', latest.danmaku);
 
-                // 更新图表数据
                 const labels = stats.map(s => s.timestamp.slice(11));
 
-                viewChart.data.labels = labels;
-                viewChart.data.datasets[0].data = stats.map(s => s.view);
-                viewChart.update('none');
-                autoFitY(viewChart);
-
-                interactChart.data.labels = labels;
-                interactChart.data.datasets[0].data = stats.map(s => s.like);
-                interactChart.data.datasets[1].data = stats.map(s => s.coin);
-                interactChart.data.datasets[2].data = stats.map(s => s.favorite);
-                interactChart.update('none');
-                autoFitY(interactChart);
+                // 每个图表各自灌数据 + 自适应 Y 轴
+                feedChart(charts.view, labels, stats.map(s => s.view));
+                feedChart(charts.like, labels, stats.map(s => s.like));
+                feedChart(charts.coin, labels, stats.map(s => s.coin));
+                feedChart(charts.fav,  labels, stats.map(s => s.favorite));
             } catch (e) {
                 console.error('获取数据失败:', e);
             }
         }
 
-        // 初始化
         createCharts();
         fetchData();
-        // 每60秒自动刷新
         setInterval(fetchData, 60000);
     </script>
 </body>
