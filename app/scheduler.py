@@ -1,26 +1,21 @@
-"""定时采集模块 - 每个视频独立采集任务"""
+"""定时采集模块 - 基于 AsyncIO 调度器
 
-import asyncio
-from apscheduler.schedulers.background import BackgroundScheduler
+使用 AsyncIOScheduler 替代 BackgroundScheduler:
+- 与 FastAPI 共享事件循环，无需额外线程池（省 ~10MB）
+- 采集任务直接以协程运行，不再为每次采集创建/销毁事件循环
+- 可与共享 httpx 客户端协同，复用连接池
+"""
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from .bilibili import fetch_video_stat, fetch_video_info
 from .store import DataStore
 
-scheduler = BackgroundScheduler()
+scheduler = AsyncIOScheduler()
 
 
 def _job_id(bvid: str) -> str:
     return f"collect_{bvid}"
-
-
-def _collect_one_sync(bvid: str):
-    """同步包装异步采集"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(_collect_video(bvid))
-    finally:
-        loop.close()
 
 
 async def _collect_video(bvid: str):
@@ -52,7 +47,7 @@ def add_video_job(bvid: str):
     if scheduler.get_job(jid):
         scheduler.remove_job(jid)
     scheduler.add_job(
-        _collect_one_sync, "interval", seconds=interval,
+        _collect_video, "interval", seconds=interval,
         id=jid, args=[bvid], replace_existing=True,
     )
 

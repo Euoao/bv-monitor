@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from contextlib import asynccontextmanager
 
+from .bilibili import init_client, close_client
 from .scheduler import start_scheduler, shutdown_scheduler
 from .routes import router
 
@@ -13,10 +14,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期管理：启动时开启定时采集，关闭时停止"""
-    start_scheduler()
+    """应用生命周期管理：启动时初始化资源，关闭时清理"""
+    init_client()          # 初始化共享 HTTP 客户端
+    start_scheduler()      # 启动定时采集
     yield
-    shutdown_scheduler()
+    shutdown_scheduler()   # 停止定时采集
+    await close_client()   # 关闭共享 HTTP 客户端
 
 
 def create_app() -> FastAPI:

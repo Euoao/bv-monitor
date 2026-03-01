@@ -123,12 +123,22 @@ class DataStore:
                 f.write(line)
 
     @classmethod
-    def get_stats(cls, bvid: str) -> list[dict]:
-        """获取所有统计数据"""
+    def get_stats(cls, bvid: str, limit: int | None = None) -> list[dict]:
+        """获取统计数据
+
+        Args:
+            bvid: 视频 BV 号
+            limit: 最多返回最近 N 条记录。None 表示全部。
+                   设置此参数时从文件尾部读取，显著降低大文件的内存占用。
+        """
         cls._ensure_migrated(bvid)
         stats_path = cls._stats_file(bvid)
         if not stats_path.exists():
             return []
+
+        if limit is not None and limit > 0:
+            return cls._tail_stats(stats_path, limit)
+
         results = []
         with open(stats_path, "r", encoding="utf-8") as f:
             for line in f:
@@ -136,6 +146,38 @@ class DataStore:
                 if line:
                     results.append(json.loads(line))
         return results
+
+    @classmethod
+    def _tail_stats(cls, path: Path, limit: int) -> list[dict]:
+        """从文件尾部高效读取最后 limit 条记录
+
+        按每条 ~200B 估算所需字节数，从文件末尾倒读，
+        避免将整个大文件加载到内存。
+        """
+        with open(path, "rb") as f:
+            f.seek(0, 2)
+            file_size = f.tell()
+            if file_size == 0:
+                return []
+
+            # 每条约 200 字节，留 50% 余量
+            read_size = min(file_size, limit * 300)
+            f.seek(file_size - read_size)
+
+            if read_size < file_size:
+                f.readline()  # 丢弃可能截断的首行
+
+            chunk = f.read().decode("utf-8")
+
+        results = []
+        for line in chunk.splitlines():
+            line = line.strip()
+            if line:
+                try:
+                    results.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        return results[-limit:]
 
     @classmethod
     def get_latest_stat(cls, bvid: str) -> dict | None:

@@ -1,6 +1,6 @@
 """API路由"""
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Query
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
@@ -102,9 +102,9 @@ async def remove_monitor(bvid: str):
 
 
 @router.get("/api/stats/{bvid}")
-async def get_stats(bvid: str):
+async def get_stats(bvid: str, limit: int | None = Query(None, ge=1, description="最多返回最近N条")):
     """获取视频统计数据（供趋势图使用）"""
-    stats = DataStore.get_stats(bvid)
+    stats = DataStore.get_stats(bvid, limit=limit)
     info = DataStore.get_info(bvid)
     return {"info": info, "stats": stats}
 
