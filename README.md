@@ -128,7 +128,7 @@ sudo bash scripts/uninstall.sh
 #### 后台进程
 
 ```bash
-nohup uv run python main.py > bv_monitor.log 2>&1 &
+nohup uv run python main.py > data/bv_monitor.log 2>&1 &
 ```
 
 停止时需手动查找并终止进程：
@@ -154,8 +154,10 @@ uv run python main.py
 在项目目录下执行：
 
 ```powershell
-Start-Process -WindowStyle Hidden -FilePath "uv" -ArgumentList "run","python","main.py"
+Start-Process -WindowStyle Hidden -FilePath "uv" -ArgumentList "run","python","main.py" -RedirectStandardOutput "data\bv_monitor.log" -RedirectStandardError "data\bv_monitor_err.log"
 ```
+
+日志文件保存在 `data/` 目录中。
 
 > `setproctitle` 在 Windows 上仅改变控制台窗口标题，进程名仍为 `python`，无法通过进程名查找。建议通过监听端口定位进程：
 
