@@ -18,9 +18,11 @@ B 站视频数据实时监控工具。输入视频 BV 号，自动定时采集�
 
 - Python >= 3.12
 - [uv](https://docs.astral.sh/uv/)（Python 包管理器）
-- Linux（systemd 部署需要）
+- Linux / macOS / Windows 均可运行（systemd 部署仅限 Linux）
 
 ## 快速开始
+
+### Linux / macOS
 
 ```bash
 # 1. 克隆项目
@@ -29,7 +31,24 @@ git clone <repo-url> && cd bv_monitor
 # 2. 安装依赖
 uv sync
 
-# 3. 启动服务（开发模式，带热重载）
+# 3. 启动服务
+uv run python main.py
+```
+
+### Windows
+
+```powershell
+# 1. 安装 uv（如尚未安装）
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# 2. 克隆项目
+git clone <repo-url>
+cd bv_monitor
+
+# 3. 安装依赖
+uv sync
+
+# 4. 启动服务
 uv run python main.py
 ```
 
@@ -49,22 +68,35 @@ uv run python main.py
 
 ## 部署
 
-### 方式一：前台运行（开发 / 调试）
+### 命令行参数
+
+```bash
+uv run python main.py [-p PORT] [--dev]
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `-p` / `--port` | 监听端口，默认 `8000` |
+| `--dev` | 开发模式，启用热重载（内存翻倍，仅开发时使用） |
+
+### Linux 部署
+
+#### 前台运行（开发 / 调试）
 
 ```bash
 uv run python main.py
 ```
 
 - 占用当前终端，关闭终端则服务停止
-- 默认开启热重载（`reload=True`），修改代码后自动重启
 - 按 `Ctrl + C` 停止
 
-### 方式二：systemd 服务（推荐生产部署）
+#### systemd 服务（推荐生产部署）
 
 **安装并启动服务：**
 
 ```bash
-sudo bash scripts/install.sh
+sudo bash scripts/install.sh        # 默认端口 8000
+sudo bash scripts/install.sh 9000   # 指定端口
 ```
 
 脚本会自动检测项目路径和运行用户，生成 systemd service 文件，启用开机自启并立即启动服务。
@@ -93,7 +125,7 @@ sudo bash scripts/uninstall.sh
 
 > 卸载仅移除 systemd 服务配置，`data/` 目录中的采集数据不会被删除。
 
-### 方式三：后台进程
+#### 后台进程
 
 ```bash
 nohup uv run python main.py > bv_monitor.log 2>&1 &
@@ -102,9 +134,69 @@ nohup uv run python main.py > bv_monitor.log 2>&1 &
 停止时需手动查找并终止进程：
 
 ```bash
-ps aux | grep main.py
+ps aux | grep bv-monitor
 kill <PID>
 ```
+
+### Windows 部署
+
+#### 前台运行
+
+```powershell
+uv run python main.py
+```
+
+- 窗口保持打开，关闭窗口则服务停止
+- 按 `Ctrl + C` 停止
+
+#### 后台运行（隐藏窗口）
+
+使用 PowerShell 的 `Start-Process` 以隐藏窗口方式启动：
+
+```powershell
+Start-Process -WindowStyle Hidden -FilePath "uv" -ArgumentList "run","python","main.py" -RedirectStandardOutput "bv_monitor.log" -RedirectStandardError "bv_monitor_err.log"
+```
+
+停止服务：
+
+```powershell
+Get-Process -Name "bv-monitor" | Stop-Process
+```
+
+#### 开机自启（计划任务）
+
+通过 Windows 任务计划程序实现开机自启：
+
+```powershell
+# 创建计划任务（以当前用户身份，开机时启动）
+$action = New-ScheduledTaskAction `
+    -Execute "C:\Users\<你的用户名>\.local\bin\uv.exe" `
+    -Argument "run python main.py" `
+    -WorkingDirectory "C:\path\to\bv_monitor"
+
+$trigger = New-ScheduledTaskTrigger -AtLogon
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0
+
+Register-ScheduledTask -TaskName "BVMonitor" -Action $action -Trigger $trigger -Settings $settings
+```
+
+管理计划任务：
+
+```powershell
+# 查看状态
+Get-ScheduledTask -TaskName "BVMonitor"
+
+# 手动启动
+Start-ScheduledTask -TaskName "BVMonitor"
+
+# 停止
+Stop-ScheduledTask -TaskName "BVMonitor"
+
+# 删除
+Unregister-ScheduledTask -TaskName "BVMonitor" -Confirm:$false
+```
+
+> 也可以通过图形界面操作：`Win + R` → 输入 `taskschd.msc` → 找到 `BVMonitor` 任务进行管理。
 
 ## 项目结构
 
@@ -202,5 +294,6 @@ bv_monitor/
 
 - B 站接口存在访问频率限制，同时监控的视频数量建议不超过 20 个
 - 采集间隔过短（如 10 秒）可能触发限流，建议根据监控数量适当调大
-- 默认端口为 `8000`，可在 `main.py` 中修改 `port` 参数
-- 开发模式默认开启热重载，systemd 部署不使用热重载
+- 默认端口 `8000`，通过 `-p` 参数修改：`uv run python main.py -p 9000`
+- 默认绑定 `127.0.0.1`（仅本机访问），如需局域网访问需修改 `main.py` 中 `host` 参数
+- 开发模式（`--dev`）开启热重载，内存占用翻倍，生产环境勿用
