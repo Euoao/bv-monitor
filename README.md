@@ -151,16 +151,20 @@ uv run python main.py
 
 #### 后台运行（隐藏窗口）
 
-使用 PowerShell 的 `Start-Process` 以隐藏窗口方式启动：
+在项目目录下执行：
 
 ```powershell
-Start-Process -WindowStyle Hidden -FilePath "uv" -ArgumentList "run","python","main.py" -RedirectStandardOutput "bv_monitor.log" -RedirectStandardError "bv_monitor_err.log"
+Start-Process -WindowStyle Hidden -FilePath "uv" -ArgumentList "run","python","main.py"
 ```
 
-停止服务：
+> `setproctitle` 在 Windows 上仅改变控制台窗口标题，进程名仍为 `python`，无法通过进程名查找。建议通过监听端口定位进程：
 
 ```powershell
-Get-Process -Name "bv-monitor" | Stop-Process
+# 查找占用 8000 端口的进程 PID
+netstat -ano | findstr :8000
+
+# 终止进程（替换 <PID> 为上一步查到的数字）
+taskkill /PID <PID> /F
 ```
 
 #### 开机自启（计划任务）
