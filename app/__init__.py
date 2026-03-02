@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 
 from .bilibili import init_client, close_client
 from .scheduler import start_scheduler, shutdown_scheduler
+from .store import close_db
 from .routes import router
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,6 +21,7 @@ async def lifespan(app: FastAPI):
     yield
     shutdown_scheduler()   # 停止定时采集
     await close_client()   # 关闭共享 HTTP 客户端
+    close_db()             # 关闭 SQLite 连接
 
 
 def create_app() -> FastAPI:

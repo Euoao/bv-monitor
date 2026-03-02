@@ -173,6 +173,47 @@
             opacity: 1;
         }
 
+        /* ── 时间范围选择器 ── */
+        .range-bar {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+            background: white;
+            border-radius: 12px;
+            padding: 0.6rem 1rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.04);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .range-bar .range-label {
+            font-size: 0.82rem;
+            color: #888;
+            margin-right: 0.5rem;
+            font-weight: 500;
+        }
+        .range-btn {
+            padding: 6px 16px;
+            font-size: 0.8rem;
+            border: 1px solid #e8ecf0;
+            background: #f8f9fa;
+            color: #666;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .range-btn:hover {
+            background: #e8ecf0;
+            color: #333;
+        }
+        .range-btn.active {
+            background: linear-gradient(135deg, #00a1d6, #0078d4);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 2px 8px rgba(0,161,214,0.3);
+        }
+
         /* ── 图表区 ── */
         .chart-box {
             background: white;
@@ -342,6 +383,16 @@
             </div>
         </div>
 
+        <div class="range-bar" id="rangeBar">
+            <span class="range-label">📅 时间范围</span>
+            <button class="range-btn" data-range="1h">1小时</button>
+            <button class="range-btn" data-range="6h">6小时</button>
+            <button class="range-btn active" data-range="24h">24小时</button>
+            <button class="range-btn" data-range="7d">7天</button>
+            <button class="range-btn" data-range="30d">30天</button>
+            <button class="range-btn" data-range="all">全部</button>
+        </div>
+
         <div class="chart-box">
             <div class="chart-header">
                 <h2>📈 播放量趋势</h2>
@@ -390,6 +441,7 @@
     <script>
         const BVID = "{{ bvid }}";
         const charts = {};
+        let currentRange = '24h';
 
         /* ── 工具函数 ── */
 
@@ -583,7 +635,7 @@
 
         async function fetchData() {
             try {
-                const resp = await fetch(`/api/stats/${BVID}`);
+                const resp = await fetch(`/api/stats/${BVID}?range=${currentRange}`);
                 const data = await resp.json();
                 const stats = data.stats;
                 if (!stats || stats.length === 0) return;
@@ -606,6 +658,25 @@
         }
 
         createCharts();
+
+        // 时间范围选择
+        document.getElementById('rangeBar').addEventListener('click', e => {
+            const btn = e.target.closest('.range-btn');
+            if (!btn) return;
+            document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentRange = btn.dataset.range;
+            // 切换范围时重置所有图表缩放
+            Object.values(charts).forEach(ch => {
+                const zoomOpts = ch.options.plugins.zoom.zoom;
+                const savedCb = zoomOpts.onZoomComplete;
+                zoomOpts.onZoomComplete = null;
+                ch.resetZoom('none');
+                zoomOpts.onZoomComplete = savedCb;
+            });
+            fetchData();
+        });
+
         fetchData();
 
         // 根据配置的间隔刷新数据

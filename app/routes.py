@@ -102,9 +102,22 @@ async def remove_monitor(bvid: str):
 
 
 @router.get("/api/stats/{bvid}")
-async def get_stats(bvid: str, limit: int | None = Query(None, ge=1, description="最多返回最近N条")):
-    """获取视频统计数据（供趋势图使用）"""
-    stats = DataStore.get_stats(bvid, limit=limit)
+async def get_stats(
+    bvid: str,
+    range: str | None = Query(None, alias="range", description="时间范围: 1h/6h/24h/7d/30d/90d/all"),
+    start: str | None = Query(None, description="起始时间 YYYY-MM-DD HH:mm:ss"),
+    end: str | None = Query(None, description="结束时间 YYYY-MM-DD HH:mm:ss"),
+    limit: int | None = Query(None, ge=1, description="最多返回最近N条（旧参数，兼容保留）"),
+):
+    """获取视频统计数据（供趋势图使用）
+
+    优先使用 range / start+end 进行时间范围查询（自动降采样），
+    若未指定则回退到 limit 参数或全量返回。
+    """
+    if range is not None or start is not None:
+        stats = DataStore.get_stats_ranged(bvid, range_str=range, start=start, end=end)
+    else:
+        stats = DataStore.get_stats(bvid, limit=limit)
     info = DataStore.get_info(bvid)
     return {"info": info, "stats": stats}
 

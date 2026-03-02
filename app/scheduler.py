@@ -25,6 +25,11 @@ async def _collect_video(bvid: str):
         DataStore.save_stat(stat)
 
 
+def _cleanup_data():
+    """定时数据归档清理（每天凌晨 3:00）"""
+    DataStore.cleanup_old_data()
+
+
 async def collect_one(bvid: str) -> bool:
     """采集单个视频数据（供API调用，含首次视频信息获取）"""
     if not DataStore.get_info(bvid):
@@ -79,6 +84,13 @@ def start_scheduler():
     """启动调度器，为每个已监控视频创建独立采集任务"""
     for bvid in DataStore.get_monitored_bvids():
         add_video_job(bvid)
+
+    # 每天凌晨 3:00 执行数据归档清理
+    scheduler.add_job(
+        _cleanup_data, "cron", hour=3, minute=0,
+        id="cleanup_data", replace_existing=True,
+    )
+
     scheduler.start()
 
 
