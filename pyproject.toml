@@ -13,5 +13,13 @@ dependencies = [
     "setproctitle>=1.3.0",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+include = ["main.py"]
+
 [project.scripts]
 bv-monitor = "main:start"

@@ -35,7 +35,7 @@ git clone <repo-url> && cd bv_monitor
 uv sync
 
 # 3. 启动服务
-uv run python main.py
+uv run bv-monitor
 ```
 
 ### Windows
@@ -52,7 +52,7 @@ cd bv_monitor
 uv sync
 
 # 4. 启动服务
-uv run python main.py
+uv run bv-monitor
 ```
 
 启动后浏览器访问 **http://localhost:8000** 即可使用。
@@ -74,7 +74,7 @@ uv run python main.py
 ### 命令行参数
 
 ```bash
-uv run python main.py [-p PORT] [--dev]
+uv run bv-monitor [-p PORT] [--dev]
 ```
 
 | 参数 | 说明 |
@@ -87,7 +87,7 @@ uv run python main.py [-p PORT] [--dev]
 #### 前台运行（开发 / 调试）
 
 ```bash
-uv run python main.py
+uv run bv-monitor
 ```
 
 - 占用当前终端，关闭终端则服务停止
@@ -131,7 +131,7 @@ sudo bash scripts/uninstall.sh
 #### 后台进程
 
 ```bash
-nohup uv run python main.py > data/bv_monitor.log 2>&1 &
+nohup uv run bv-monitor > data/bv_monitor.log 2>&1 &
 ```
 
 停止时需手动查找并终止进程：
@@ -146,7 +146,7 @@ kill <PID>
 #### 前台运行
 
 ```powershell
-uv run python main.py
+uv run bv-monitor
 ```
 
 - 窗口保持打开，关闭窗口则服务停止
@@ -157,7 +157,7 @@ uv run python main.py
 在项目目录下执行：
 
 ```powershell
-Start-Process -WindowStyle Hidden -FilePath "uv" -ArgumentList "run","python","main.py" -RedirectStandardOutput "data\bv_monitor.log" -RedirectStandardError "data\bv_monitor_err.log"
+Start-Process -WindowStyle Hidden -FilePath "uv" -ArgumentList "run","bv-monitor" -RedirectStandardOutput "data\bv_monitor.log" -RedirectStandardError "data\bv_monitor_err.log"
 ```
 
 日志文件保存在 `data/` 目录中。
@@ -180,7 +180,7 @@ taskkill /PID <PID> /F
 # 创建计划任务（以当前用户身份，开机时启动）
 $action = New-ScheduledTaskAction `
     -Execute "C:\Users\<你的用户名>\.local\bin\uv.exe" `
-    -Argument "run python main.py" `
+    -Argument "run bv-monitor" `
     -WorkingDirectory "C:\path\to\bv_monitor"
 
 $trigger = New-ScheduledTaskTrigger -AtLogon
@@ -324,6 +324,6 @@ CREATE INDEX idx_stats_bvid_ts ON video_stats (bvid, timestamp);
 
 - B 站接口存在访问频率限制，同时监控的视频数量建议不超过 20 个
 - 采集间隔过短（如 10 秒）可能触发限流，建议根据监控数量适当调大
-- 默认端口 `8000`，通过 `-p` 参数修改：`uv run python main.py -p 9000`
+- 默认端口 `8000`，通过 `-p` 参数修改：`uv run bv-monitor -p 9000`
 - 默认绑定 `127.0.0.1`（仅本机访问），如需局域网访问需修改 `main.py` 中 `host` 参数
 - 开发模式（`--dev`）开启热重载，内存占用翻倍，生产环境勿用
